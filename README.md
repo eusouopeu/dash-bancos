@@ -44,5 +44,5 @@ Duas opções:
    ```
    (usa o pacote `gh-pages`, publica a pasta `dist` na branch `gh-pages`).
 
-O `base` em `vite.config.ts` está fixado como `/dashboard-ambev/` — se o nome
+O `base` em `vite.config.ts` está fixado como `/dashboard-financeiro-ambev/` — se o nome
 do repositório no GitHub for diferente, ajuste esse valor antes do build.
