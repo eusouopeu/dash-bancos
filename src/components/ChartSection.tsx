@@ -2,7 +2,9 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Label,
   Legend,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -31,6 +33,15 @@ export function CicloDeCaixaChart() {
           formatter={(value) => [`${Number(value).toFixed(1)} dias`, 'Ciclo de caixa']}
           contentStyle={{ borderRadius: 8, borderColor: '#e2e8f0', fontSize: 13 }}
         />
+        <ReferenceLine x={2020} stroke={ROSE} strokeDasharray="4 4">
+          <Label
+            value="Início da pandemia"
+            position="insideTopLeft"
+            fontSize={11}
+            fill="#fff"
+            style={{ fontWeight: 600 }}
+          />
+        </ReferenceLine>
         <Bar dataKey="dias" fill={INDIGO} radius={[6, 6, 6, 6]} />
       </BarChart>
     </ResponsiveContainer>

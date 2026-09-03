@@ -29,6 +29,14 @@ npm run build
 npm run preview
 ```
 
+## Testes
+
+```bash
+npm run test
+```
+
+Testes unitários (Vitest) para as fórmulas financeiras em `src/data.ts`.
+
 ## Deploy no GitHub Pages
 
 Duas opções:

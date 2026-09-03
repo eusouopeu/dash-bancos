@@ -107,8 +107,7 @@ function byYear(year: number): RawYear {
   return found
 }
 
-export const METRICS: YearMetrics[] = RAW_DATA.filter((d) => d.year >= 2020).map((cur) => {
-  const prev = byYear(cur.year - 1)
+export function computeYearMetrics(cur: RawYear, prev: RawYear): YearMetrics {
   const estoqueMedio = (cur.estoques + prev.estoques) / 2
   const contasReceberMedio = (cur.contasReceber + prev.contasReceber) / 2
   const fornecedoresMedio = (cur.fornecedores + prev.fornecedores) / 2
@@ -134,6 +133,10 @@ export const METRICS: YearMetrics[] = RAW_DATA.filter((d) => d.year >= 2020).map
     margemLiquida: cur.lucroLiquido / cur.receitaLiquida,
     receitaLiquida: cur.receitaLiquida,
   }
-})
+}
+
+export const METRICS: YearMetrics[] = RAW_DATA.filter((d) => d.year >= 2020).map((cur) =>
+  computeYearMetrics(cur, byYear(cur.year - 1)),
+)
 
 export const LATEST = METRICS[METRICS.length - 1]
