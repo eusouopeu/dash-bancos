@@ -1,5 +1,6 @@
 import type { ComponentType, SVGProps } from 'react'
 import { ArrowDownIcon, ArrowUpIcon } from '@heroicons/react/20/solid'
+import { PendingBadge } from './PendingBadge'
 
 interface IndicatorCardProps {
   label: string
@@ -11,9 +12,11 @@ interface IndicatorCardProps {
     direction: 'up' | 'down'
     positive: boolean
   }
+  /** Quando true, ignora `value`/`trend` e exibe um indicador de "dado pendente". */
+  pending?: boolean
 }
 
-export function IndicatorCard({ label, value, helpText, icon: Icon, trend }: IndicatorCardProps) {
+export function IndicatorCard({ label, value, helpText, icon: Icon, trend, pending }: IndicatorCardProps) {
   return (
     <div className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
       <div className="flex items-center justify-between">
@@ -22,22 +25,28 @@ export function IndicatorCard({ label, value, helpText, icon: Icon, trend }: Ind
           <Icon className="h-5 w-5 text-indigo-600 dark:text-indigo-400" />
         </span>
       </div>
-      <p className="text-2xl font-bold text-slate-900 dark:text-white">{value}</p>
+      <p className="text-2xl font-bold text-slate-900 dark:text-white">{pending ? '—' : value}</p>
       <div className="flex items-center justify-between">
-        {helpText && <p className="text-xs text-slate-400 dark:text-slate-500">{helpText}</p>}
-        {trend && (
-          <span
-            className={`inline-flex items-center gap-0.5 text-xs font-semibold ${
-              trend.positive ? 'text-emerald-600' : 'text-rose-600'
-            }`}
-          >
-            {trend.direction === 'up' ? (
-              <ArrowUpIcon className="h-3.5 w-3.5" />
-            ) : (
-              <ArrowDownIcon className="h-3.5 w-3.5" />
+        {pending ? (
+          <PendingBadge />
+        ) : (
+          <>
+            {helpText && <p className="text-xs text-slate-400 dark:text-slate-500">{helpText}</p>}
+            {trend && (
+              <span
+                className={`inline-flex items-center gap-0.5 text-xs font-semibold ${
+                  trend.positive ? 'text-emerald-600' : 'text-rose-600'
+                }`}
+              >
+                {trend.direction === 'up' ? (
+                  <ArrowUpIcon className="h-3.5 w-3.5" />
+                ) : (
+                  <ArrowDownIcon className="h-3.5 w-3.5" />
+                )}
+                {trend.deltaLabel}
+              </span>
             )}
-            {trend.deltaLabel}
-          </span>
+          </>
         )}
       </div>
     </div>

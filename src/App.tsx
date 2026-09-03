@@ -8,6 +8,9 @@ import { IndicatorCard } from './components/IndicatorCard'
 import { CicloDeCaixaChart, MargensChart, PrazosChart } from './components/ChartSection'
 import { ProjecaoCicloChart } from './components/ProjecaoChart'
 import { PremisesSection } from './components/PremisesSection'
+import { CapitalSection } from './components/CapitalSection'
+import { RevenueRealSection } from './components/RevenueRealSection'
+import { BenchmarkingSection } from './components/BenchmarkingSection'
 import { ThemeToggle } from './components/ThemeToggle'
 import { LATEST, METRICS } from './data'
 import { formatDays, formatPercent } from './format'
@@ -123,6 +126,10 @@ function App() {
           </section>
         </div>
 
+        <CapitalSection />
+
+        <RevenueRealSection />
+
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
           <h2 className="text-sm font-semibold text-slate-700 dark:text-slate-200">
             Projeção simples — ciclo de caixa (2025–2026)
@@ -134,6 +141,8 @@ function App() {
           </p>
           <ProjecaoCicloChart />
         </section>
+
+        <BenchmarkingSection />
 
         <PremisesSection />
 

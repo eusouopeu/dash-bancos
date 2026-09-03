@@ -13,6 +13,12 @@ describe('computeYearMetrics', () => {
       contasReceber: 100,
       estoques: 150,
       fornecedores: 200,
+      patrimonioLiquido: null,
+      ativoTotal: null,
+      dividaBruta: null,
+      caixaEquivalentes: null,
+      despesaFinanceiraLiquida: null,
+      depreciacaoAmortizacao: null,
     }
     const cur: RawYear = {
       year: 2001,
@@ -24,6 +30,12 @@ describe('computeYearMetrics', () => {
       contasReceber: 140,
       estoques: 210,
       fornecedores: 260,
+      patrimonioLiquido: null,
+      ativoTotal: null,
+      dividaBruta: null,
+      caixaEquivalentes: null,
+      despesaFinanceiraLiquida: null,
+      depreciacaoAmortizacao: null,
     }
 
     const result = computeYearMetrics(cur, prev)
@@ -52,6 +64,12 @@ describe('computeYearMetrics', () => {
       contasReceber: 10,
       estoques: 20,
       fornecedores: 500,
+      patrimonioLiquido: null,
+      ativoTotal: null,
+      dividaBruta: null,
+      caixaEquivalentes: null,
+      despesaFinanceiraLiquida: null,
+      depreciacaoAmortizacao: null,
     }
     const cur: RawYear = {
       year: 2001,
@@ -63,10 +81,118 @@ describe('computeYearMetrics', () => {
       contasReceber: 10,
       estoques: 20,
       fornecedores: 500,
+      patrimonioLiquido: null,
+      ativoTotal: null,
+      dividaBruta: null,
+      caixaEquivalentes: null,
+      despesaFinanceiraLiquida: null,
+      depreciacaoAmortizacao: null,
     }
 
     const result = computeYearMetrics(cur, prev)
     expect(result.cicloDeCaixa).toBeLessThan(0)
+  })
+
+  it('retorna null para ROE/ROA/ROIC/dívida enquanto os dados de capital não forem preenchidos', () => {
+    const prev: RawYear = {
+      year: 2000,
+      receitaLiquida: 0,
+      cpv: 0,
+      lucroBruto: 0,
+      ebit: 0,
+      lucroLiquido: 0,
+      contasReceber: 100,
+      estoques: 150,
+      fornecedores: 200,
+      patrimonioLiquido: null,
+      ativoTotal: null,
+      dividaBruta: null,
+      caixaEquivalentes: null,
+      despesaFinanceiraLiquida: null,
+      depreciacaoAmortizacao: null,
+    }
+    const cur: RawYear = {
+      ...prev,
+      year: 2001,
+      receitaLiquida: 1200,
+      cpv: 720,
+      lucroBruto: 480,
+      ebit: 240,
+      lucroLiquido: 120,
+      contasReceber: 140,
+      estoques: 210,
+      fornecedores: 260,
+    }
+
+    const result = computeYearMetrics(cur, prev)
+    expect(result.roe).toBeNull()
+    expect(result.roa).toBeNull()
+    expect(result.roic).toBeNull()
+    expect(result.giroAtivo).toBeNull()
+    expect(result.alavancagemFinanceira).toBeNull()
+    expect(result.dividaLiquida).toBeNull()
+    expect(result.ebitda).toBeNull()
+    expect(result.dividaLiquidaSobreEbitda).toBeNull()
+    expect(result.coberturaJuros).toBeNull()
+  })
+
+  it('calcula ROE, ROA, ROIC e endividamento quando os dados de capital estão preenchidos', () => {
+    const prev: RawYear = {
+      year: 2000,
+      receitaLiquida: 0,
+      cpv: 0,
+      lucroBruto: 0,
+      ebit: 0,
+      lucroLiquido: 0,
+      contasReceber: 0,
+      estoques: 0,
+      fornecedores: 0,
+      patrimonioLiquido: 800,
+      ativoTotal: 2000,
+      dividaBruta: 500,
+      caixaEquivalentes: 100,
+      despesaFinanceiraLiquida: 0,
+      depreciacaoAmortizacao: 0,
+    }
+    const cur: RawYear = {
+      year: 2001,
+      receitaLiquida: 1200,
+      cpv: 720,
+      lucroBruto: 480,
+      ebit: 240,
+      lucroLiquido: 120,
+      contasReceber: 0,
+      estoques: 0,
+      fornecedores: 0,
+      patrimonioLiquido: 1000,
+      ativoTotal: 2400,
+      dividaBruta: 600,
+      caixaEquivalentes: 200,
+      despesaFinanceiraLiquida: 40,
+      depreciacaoAmortizacao: 60,
+    }
+
+    const result = computeYearMetrics(cur, prev)
+
+    // PL médio = (800+1000)/2=900, ativo médio=(2000+2400)/2=2200
+    expect(result.roe).toBeCloseTo(120 / 900, 6)
+    expect(result.roa).toBeCloseTo(120 / 2200, 6)
+    expect(result.giroAtivo).toBeCloseTo(1200 / 2200, 6)
+    expect(result.alavancagemFinanceira).toBeCloseTo(2200 / 900, 6)
+    // DuPont: margem líquida × giro do ativo × alavancagem = ROE
+    expect(result.margemLiquida * result.giroAtivo! * result.alavancagemFinanceira!).toBeCloseTo(
+      result.roe!,
+      9,
+    )
+
+    // capital investido = dívida bruta + PL - caixa: prev=(500+800-100)=1200, cur=(600+1000-200)=1400, médio=1300
+    expect(result.roic).toBeCloseTo(240 / 1300, 6)
+
+    // dívida líquida = 600-200=400; EBITDA = 240+60=300
+    expect(result.dividaLiquida).toBeCloseTo(400, 6)
+    expect(result.ebitda).toBeCloseTo(300, 6)
+    expect(result.dividaLiquidaSobreEbitda).toBeCloseTo(400 / 300, 6)
+    expect(result.coberturaJuros).toBeCloseTo(240 / 40, 6)
   })
 })
 

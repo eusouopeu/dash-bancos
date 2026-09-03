@@ -16,6 +16,21 @@ export interface RawYear {
   contasReceber: number
   estoques: number
   fornecedores: number
+  /**
+   * Dados pendentes para rentabilidade sobre capital e estrutura de capital
+   * (ROE, ROA, ROIC, dívida líquida/EBITDA, cobertura de juros — ver
+   * `computeYearMetrics`). TODO: preencher com valores reais da DFP/CVM
+   * (Balanço Patrimonial e Nota de Empréstimos e Financiamentos) ou do
+   * Release de Resultados da Ambev. Enquanto `null`, os indicadores
+   * correspondentes aparecem como "dado pendente" no dashboard — nenhuma
+   * mudança de código é necessária além de preencher os valores aqui.
+   */
+  patrimonioLiquido: number | null
+  ativoTotal: number | null
+  dividaBruta: number | null
+  caixaEquivalentes: number | null
+  despesaFinanceiraLiquida: number | null
+  depreciacaoAmortizacao: number | null
 }
 
 export const RAW_DATA: RawYear[] = [
@@ -29,6 +44,12 @@ export const RAW_DATA: RawYear[] = [
     contasReceber: 4_495_525,
     estoques: 5_978_557,
     fornecedores: 14_178_858,
+    patrimonioLiquido: null,
+    ativoTotal: null,
+    dividaBruta: null,
+    caixaEquivalentes: null,
+    despesaFinanceiraLiquida: null,
+    depreciacaoAmortizacao: null,
   },
   {
     year: 2020,
@@ -40,6 +61,12 @@ export const RAW_DATA: RawYear[] = [
     contasReceber: 4_303_138,
     estoques: 7_605_905,
     fornecedores: 18_182_126,
+    patrimonioLiquido: null,
+    ativoTotal: null,
+    dividaBruta: null,
+    caixaEquivalentes: null,
+    despesaFinanceiraLiquida: null,
+    depreciacaoAmortizacao: null,
   },
   {
     year: 2021,
@@ -51,6 +78,12 @@ export const RAW_DATA: RawYear[] = [
     contasReceber: 4_791_634,
     estoques: 11_000_346,
     fornecedores: 23_867_688,
+    patrimonioLiquido: null,
+    ativoTotal: null,
+    dividaBruta: null,
+    caixaEquivalentes: null,
+    despesaFinanceiraLiquida: null,
+    depreciacaoAmortizacao: null,
   },
   {
     year: 2022,
@@ -62,6 +95,12 @@ export const RAW_DATA: RawYear[] = [
     contasReceber: 5_349_105,
     estoques: 12_923_025,
     fornecedores: 23_498_099,
+    patrimonioLiquido: null,
+    ativoTotal: null,
+    dividaBruta: null,
+    caixaEquivalentes: null,
+    despesaFinanceiraLiquida: null,
+    depreciacaoAmortizacao: null,
   },
   {
     year: 2023,
@@ -73,6 +112,12 @@ export const RAW_DATA: RawYear[] = [
     contasReceber: 5_741_457,
     estoques: 9_619_022,
     fornecedores: 21_278_615,
+    patrimonioLiquido: null,
+    ativoTotal: null,
+    dividaBruta: null,
+    caixaEquivalentes: null,
+    despesaFinanceiraLiquida: null,
+    depreciacaoAmortizacao: null,
   },
   {
     year: 2024,
@@ -84,6 +129,12 @@ export const RAW_DATA: RawYear[] = [
     contasReceber: 6_269_863,
     estoques: 11_689_767,
     fornecedores: 24_042_927,
+    patrimonioLiquido: null,
+    ativoTotal: null,
+    dividaBruta: null,
+    caixaEquivalentes: null,
+    despesaFinanceiraLiquida: null,
+    depreciacaoAmortizacao: null,
   },
 ]
 
@@ -99,12 +150,32 @@ export interface YearMetrics {
   margemOperacional: number
   margemLiquida: number
   receitaLiquida: number
+  /** Rentabilidade sobre capital e estrutura de capital — `null` enquanto os dados de RawYear estiverem pendentes. */
+  roe: number | null
+  roa: number | null
+  /** ROIC aproximado (pré-imposto): EBIT / Capital Investido médio. */
+  roic: number | null
+  dividaLiquida: number | null
+  ebitda: number | null
+  dividaLiquidaSobreEbitda: number | null
+  coberturaJuros: number | null
+  /** Decomposição DuPont do ROE: margemLiquida × giroAtivo × alavancagemFinanceira. */
+  giroAtivo: number | null
+  alavancagemFinanceira: number | null
 }
 
 function byYear(year: number): RawYear {
   const found = RAW_DATA.find((d) => d.year === year)
   if (!found) throw new Error(`Ano ${year} não encontrado nos dados`)
   return found
+}
+
+function avgOrNull(a: number | null, b: number | null): number | null {
+  return a === null || b === null ? null : (a + b) / 2
+}
+
+function divOrNull(a: number | null, b: number | null): number | null {
+  return a === null || b === null || b === 0 ? null : a / b
 }
 
 export function computeYearMetrics(cur: RawYear, prev: RawYear): YearMetrics {
@@ -120,6 +191,32 @@ export function computeYearMetrics(cur: RawYear, prev: RawYear): YearMetrics {
   const cicloDeCaixa = pme + pmr - pmp
   const ncg = cicloDeCaixa * (cur.receitaLiquida / 360)
 
+  const patrimonioMedio = avgOrNull(cur.patrimonioLiquido, prev.patrimonioLiquido)
+  const ativoMedio = avgOrNull(cur.ativoTotal, prev.ativoTotal)
+  const roe = divOrNull(cur.lucroLiquido, patrimonioMedio)
+  const roa = divOrNull(cur.lucroLiquido, ativoMedio)
+  const giroAtivo = divOrNull(cur.receitaLiquida, ativoMedio)
+  const alavancagemFinanceira = divOrNull(ativoMedio, patrimonioMedio)
+
+  const capitalInvestido =
+    cur.dividaBruta === null || cur.patrimonioLiquido === null || cur.caixaEquivalentes === null
+      ? null
+      : cur.dividaBruta + cur.patrimonioLiquido - cur.caixaEquivalentes
+  const capitalInvestidoPrev =
+    prev.dividaBruta === null || prev.patrimonioLiquido === null || prev.caixaEquivalentes === null
+      ? null
+      : prev.dividaBruta + prev.patrimonioLiquido - prev.caixaEquivalentes
+  const capitalInvestidoMedio = avgOrNull(capitalInvestido, capitalInvestidoPrev)
+  const roic = divOrNull(cur.ebit, capitalInvestidoMedio)
+
+  const dividaLiquida =
+    cur.dividaBruta === null || cur.caixaEquivalentes === null
+      ? null
+      : cur.dividaBruta - cur.caixaEquivalentes
+  const ebitda = cur.depreciacaoAmortizacao === null ? null : cur.ebit + cur.depreciacaoAmortizacao
+  const dividaLiquidaSobreEbitda = divOrNull(dividaLiquida, ebitda)
+  const coberturaJuros = divOrNull(cur.ebit, cur.despesaFinanceiraLiquida)
+
   return {
     year: cur.year,
     giroEstoque,
@@ -132,6 +229,15 @@ export function computeYearMetrics(cur: RawYear, prev: RawYear): YearMetrics {
     margemOperacional: cur.ebit / cur.receitaLiquida,
     margemLiquida: cur.lucroLiquido / cur.receitaLiquida,
     receitaLiquida: cur.receitaLiquida,
+    roe,
+    roa,
+    roic,
+    dividaLiquida,
+    ebitda,
+    dividaLiquidaSobreEbitda,
+    coberturaJuros,
+    giroAtivo,
+    alavancagemFinanceira,
   }
 }
 
