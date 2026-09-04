@@ -1,8 +1,8 @@
 import {
-  Bar,
-  BarChart,
   CartesianGrid,
   Legend,
+  Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -15,72 +15,117 @@ function buildSeries(indicator: NumericIndicatorKey, scale: number) {
     const row: Record<string, number | string> = { year }
     for (const inst of INSTITUTIONS) {
       const d = RAW_DATA.find((x) => x.institution === inst.id && x.year === year)
-      if (d) row[inst.shortName] = Number((d[indicator] * scale).toFixed(2))
+      const value = d?.[indicator]
+      if (value !== undefined) row[inst.shortName] = Number((value * scale).toFixed(2))
     }
     return row
   })
 }
 
-interface GroupedBarChartProps {
+interface LineSeriesChartProps {
   indicator: NumericIndicatorKey
   scale: number
   valueSuffix: string
   height?: number
 }
 
-function GroupedBarChart({ indicator, scale, valueSuffix, height = 280 }: GroupedBarChartProps) {
+function LineSeriesChart({ indicator, scale, valueSuffix, height = 240 }: LineSeriesChartProps) {
   const data = buildSeries(indicator, scale)
   return (
     <ResponsiveContainer width="100%" height={height}>
-      <BarChart data={data} margin={{ top: 20, right: 8, left: 8, bottom: 0 }}>
+      <LineChart data={data} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
         <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-        <XAxis dataKey="year" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={{ stroke: '#e2e8f0' }} />
+        <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={{ stroke: '#e2e8f0' }} />
         <YAxis
-          tick={{ fontSize: 12, fill: '#64748b' }}
+          tick={{ fontSize: 11, fill: '#94a3b8' }}
           axisLine={{ stroke: '#e2e8f0' }}
           tickFormatter={(v) => `${v}${valueSuffix}`}
+          width={44}
         />
         <Tooltip
           formatter={(value) => [`${Number(value).toLocaleString('pt-BR')}${valueSuffix}`, '']}
-          contentStyle={{ borderRadius: 8, borderColor: '#e2e8f0', fontSize: 13 }}
+          contentStyle={{ borderRadius: 8, borderColor: '#e2e8f0', fontSize: 12 }}
         />
         <Legend
-          wrapperStyle={{ fontSize: 12 }}
+          wrapperStyle={{ fontSize: 11 }}
+          iconSize={8}
           itemSorter={(item) => INSTITUTIONS.findIndex((inst) => inst.shortName === item.value)}
         />
         {INSTITUTIONS.map((inst) => (
-          <Bar
+          <Line
             key={inst.id}
+            type="monotone"
             dataKey={inst.shortName}
-            fill={inst.color}
-            radius={[4, 4, 0, 0]}
+            stroke={inst.color}
+            strokeWidth={2}
+            dot={{ r: 3, fill: inst.color, strokeWidth: 0 }}
+            activeDot={{ r: 5 }}
           />
         ))}
-      </BarChart>
+      </LineChart>
     </ResponsiveContainer>
   )
 }
 
-export function ROEChart() {
-  return <GroupedBarChart indicator="roe" scale={100} valueSuffix="%" />
+export function LucroLiquidoLineChart() {
+  return <LineSeriesChart indicator="lucroLiquido" scale={1 / 1000} valueSuffix=" bi" />
 }
 
-export function ROAChart() {
-  return <GroupedBarChart indicator="roa" scale={100} valueSuffix="%" />
+export function EficienciaLineChart() {
+  return <LineSeriesChart indicator="eficiencia" scale={100} valueSuffix="%" />
 }
 
-export function BasileiaChart() {
-  return <GroupedBarChart indicator="basileia" scale={100} valueSuffix="%" />
+export function ROALineChart() {
+  return <LineSeriesChart indicator="roa" scale={100} valueSuffix="%" />
 }
 
-export function EficienciaChart() {
-  return <GroupedBarChart indicator="eficiencia" scale={100} valueSuffix="%" />
+export function hasLcrData(): boolean {
+  return RAW_DATA.some((d) => d.lcr !== undefined)
 }
 
-export function InadimplenciaChart() {
-  return <GroupedBarChart indicator="inadimplencia" scale={100} valueSuffix="%" />
-}
+export function LCRLineChart() {
+  const data = YEARS.map((year) => {
+    const row: Record<string, number | string> = { year }
+    for (const inst of INSTITUTIONS) {
+      const d = RAW_DATA.find((x) => x.institution === inst.id && x.year === year)
+      if (d?.lcr !== undefined) row[inst.shortName] = Number((d.lcr * 100).toFixed(1))
+    }
+    return row
+  })
 
-export function AtivosTotaisChart() {
-  return <GroupedBarChart indicator="ativosTotais" scale={1 / 1000} valueSuffix=" bi" height={300} />
+  return (
+    <ResponsiveContainer width="100%" height={240}>
+      <LineChart data={data} margin={{ top: 12, right: 12, left: 0, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+        <XAxis dataKey="year" tick={{ fontSize: 11, fill: '#94a3b8' }} axisLine={{ stroke: '#e2e8f0' }} />
+        <YAxis
+          tick={{ fontSize: 11, fill: '#94a3b8' }}
+          axisLine={{ stroke: '#e2e8f0' }}
+          tickFormatter={(v) => `${v}%`}
+          width={44}
+        />
+        <Tooltip
+          formatter={(value) => [`${Number(value).toLocaleString('pt-BR')}%`, '']}
+          contentStyle={{ borderRadius: 8, borderColor: '#e2e8f0', fontSize: 12 }}
+        />
+        <Legend
+          wrapperStyle={{ fontSize: 11 }}
+          iconSize={8}
+          itemSorter={(item) => INSTITUTIONS.findIndex((inst) => inst.shortName === item.value)}
+        />
+        {INSTITUTIONS.map((inst) => (
+          <Line
+            key={inst.id}
+            type="monotone"
+            dataKey={inst.shortName}
+            stroke={inst.color}
+            strokeWidth={2}
+            connectNulls
+            dot={{ r: 3, fill: inst.color, strokeWidth: 0 }}
+            activeDot={{ r: 5 }}
+          />
+        ))}
+      </LineChart>
+    </ResponsiveContainer>
+  )
 }

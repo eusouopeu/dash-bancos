@@ -12,3 +12,7 @@ export function formatBRLBillions(valueInMillions: number): string {
   const billions = valueInMillions / 1_000
   return `R$ ${billions.toLocaleString('pt-BR', { maximumFractionDigits: 1 })} bi`
 }
+
+export function formatNumber(value: number): string {
+  return value.toLocaleString('pt-BR')
+}
