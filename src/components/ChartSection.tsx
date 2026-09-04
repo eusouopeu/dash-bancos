@@ -2,7 +2,9 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
+  Label,
   Legend,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -26,6 +28,35 @@ interface GroupedBarChartProps {
   scale: number
   valueSuffix: string
   height?: number
+export function CicloDeCaixaChart() {
+  const data = METRICS.map((m) => ({ year: m.year, dias: Number(m.cicloDeCaixa.toFixed(1)) }))
+  return (
+    <ResponsiveContainer width="100%" height={280}>
+      <BarChart data={data} margin={{ top: 8, right: 8, left: 8, bottom: 0 }}>
+        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+        <XAxis dataKey="year" tick={{ fontSize: 12, fill: '#64748b' }} axisLine={{ stroke: '#e2e8f0' }} />
+        <YAxis
+          tick={{ fontSize: 12, fill: '#64748b' }}
+          axisLine={{ stroke: '#e2e8f0' }}
+          tickFormatter={(v) => `${v}d`}
+        />
+        <Tooltip
+          formatter={(value) => [`${Number(value).toFixed(1)} dias`, 'Ciclo de caixa']}
+          contentStyle={{ borderRadius: 8, borderColor: '#e2e8f0', fontSize: 13 }}
+        />
+        <ReferenceLine x={2020} stroke={ROSE} strokeDasharray="4 4">
+          <Label
+            value="Início da pandemia"
+            position="insideTopLeft"
+            fontSize={11}
+            fill="#fff"
+            style={{ fontWeight: 600 }}
+          />
+        </ReferenceLine>
+        <Bar dataKey="dias" fill={INDIGO} radius={[6, 6, 6, 6]} />
+      </BarChart>
+    </ResponsiveContainer>
+  )
 }
 
 function GroupedBarChart({ indicator, scale, valueSuffix, height = 280 }: GroupedBarChartProps) {
