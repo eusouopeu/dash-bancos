@@ -4,16 +4,18 @@ import { formatBRLCompact } from '../format'
 export function PremisesSection() {
   const rows = RAW_DATA.filter((d) => d.year >= 2020)
   return (
-    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-      <h3 className="mb-1 text-sm font-semibold text-slate-700">Premissas e fonte dos dados</h3>
-      <p className="mb-4 text-xs leading-relaxed text-slate-500">
+    <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-800">
+      <h3 className="mb-1 text-sm font-semibold text-slate-700 dark:text-slate-200">
+        Premissas e fonte dos dados
+      </h3>
+      <p className="mb-4 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
         Dados extraídos das Demonstrações Financeiras Padronizadas (DFP) consolidadas da
         AMBEV S.A. (CD_CVM 023264), disponíveis no{' '}
         <a
           href="https://dados.cvm.gov.br/dataset/cia_aberta-doc-dfp"
           target="_blank"
           rel="noreferrer"
-          className="font-medium text-indigo-600 hover:underline"
+          className="font-medium text-indigo-600 hover:underline dark:text-indigo-400"
         >
           Portal de Dados Abertos da CVM
         </a>
@@ -25,7 +27,7 @@ export function PremisesSection() {
       <div className="overflow-x-auto">
         <table className="w-full min-w-[560px] border-collapse text-left text-xs">
           <thead>
-            <tr className="border-b border-slate-200 text-slate-500">
+            <tr className="border-b border-slate-200 text-slate-500 dark:border-slate-700 dark:text-slate-400">
               <th className="py-2 pr-4 font-medium">Ano</th>
               <th className="py-2 pr-4 font-medium">Receita líquida</th>
               <th className="py-2 pr-4 font-medium">Estoques</th>
@@ -35,7 +37,10 @@ export function PremisesSection() {
           </thead>
           <tbody>
             {rows.map((r) => (
-              <tr key={r.year} className="border-b border-slate-100 text-slate-700">
+              <tr
+                key={r.year}
+                className="border-b border-slate-100 text-slate-700 dark:border-slate-800 dark:text-slate-300"
+              >
                 <td className="py-2 pr-4 font-medium">{r.year}</td>
                 <td className="py-2 pr-4">{formatBRLCompact(r.receitaLiquida)}</td>
                 <td className="py-2 pr-4">{formatBRLCompact(r.estoques)}</td>
