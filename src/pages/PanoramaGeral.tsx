@@ -4,12 +4,9 @@ import { InstitutionCard } from '../components/InstitutionCard'
 import {
   EficienciaLineChart,
   InadimplenciaLineChart,
-  LCRLineChart,
-  LucroLiquidoLineChart,
+  ROALineChart,
   ROELineChart,
   SeriesLegend,
-  coverageGaps,
-  hasLcrData,
 } from '../components/ChartSection'
 import { IndicatorComparison, type ComparisonRow } from '../components/IndicatorComparison'
 import { PresenceHighlights } from '../components/PresenceHighlights'
@@ -27,7 +24,6 @@ import {
 } from '../data'
 import { formatNumber } from '../format'
 import { PageHeader } from '../layout/PageHeader'
-import { PendingBadge } from '../components/PendingBadge'
 
 const COMPARISON_ROWS: ComparisonRow[] = [
   { label: 'ROE — retorno sobre patrimônio líquido', key: 'roe', better: 'max' },
@@ -96,9 +92,6 @@ export function PanoramaGeral() {
   const sicoobHighlights = PRESENCE_HIGHLIGHTS.filter((h) => h.institution === 'sicoob')
   const snapshot = NETWORK_SNAPSHOTS.find((n) => n.institution === mapInstitution)!
   const dataByUF = Object.fromEntries(snapshot.porUF.map((u) => [u.uf, u.count]))
-  const showLcr = hasLcrData()
-  const lcrGaps = coverageGaps('lcr')
-  const latestYear = YEARS[YEARS.length - 1]
 
   return (
     <>
@@ -205,8 +198,8 @@ export function PanoramaGeral() {
         <div>
           <p className="eyebrow mb-3">Séries históricas · {YEARS[0]}–{YEARS[YEARS.length - 1]}</p>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
-            <ChartPanel title="Lucro líquido" unit="R$ bilhões">
-              <LucroLiquidoLineChart />
+            <ChartPanel title="ROA" unit="% ao ano">
+              <ROALineChart />
             </ChartPanel>
             <ChartPanel title="ROE" unit="% ao ano">
               <ROELineChart />
@@ -216,30 +209,6 @@ export function PanoramaGeral() {
             </ChartPanel>
             <ChartPanel title="Inadimplência > 90 dias" unit="% da carteira">
               <InadimplenciaLineChart />
-            </ChartPanel>
-            <ChartPanel title="LCR" unit="% — liquidez de curto prazo">
-              {showLcr ? (
-                <>
-                  <LCRLineChart />
-                  <p className="mt-2.5 text-[11px] leading-relaxed text-muted">
-                    {lcrGaps.never.length > 0 && (
-                      <>O {lcrGaps.never.join(' e o ')} não divulga LCR. </>
-                    )}
-                    {lcrGaps.latestOnly.length > 0 && (
-                      <>
-                        {lcrGaps.latestOnly.join(' e ')} ainda não publicaram o de {latestYear}.
-                      </>
-                    )}
-                  </p>
-                </>
-              ) : (
-                <div className="flex h-[210px] flex-col items-center justify-center gap-2.5 text-center">
-                  <PendingBadge text="Aguardando dados" />
-                  <p className="max-w-[220px] text-[11px] leading-relaxed text-muted">
-                    A incluir assim que localizado em fonte primária.
-                  </p>
-                </div>
-              )}
             </ChartPanel>
           </div>
         </div>

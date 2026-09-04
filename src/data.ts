@@ -17,7 +17,7 @@
  * patrimônio líquido; lucro líquido ÷ ativos totais, ambos ao final do
  * exercício) para permitir comparação direta — os números "oficiais"
  * divulgados por cada instituição usam metodologias próprias e podem
- * diferir. Ver `METHODOLOGY_NOTES` para essa e outras ressalvas (ex.:
+ * diferir. Ver `ASSUMPTIONS` e `LIMITATIONS` para essa e outras ressalvas (ex.:
  * definição de inadimplência).
  */
 
@@ -87,14 +87,12 @@ export interface RawYearData {
   eficiencia?: number
   /** decimal — carteira vencida > 90 dias (BB/Itaú) ou índice de ativos problemáticos E-H (Sicoob, não comparável 1:1). Nem toda instituição/ano divulga. */
   inadimplencia?: number
-  /** decimal — Liquidity Coverage Ratio / Índice de Liquidez de Curto Prazo. Nem toda instituição/ano divulga. */
-  lcr?: number
 }
 
 export const RAW_DATA_INPUT: RawYearData[] = [
   // --- Sicoob ---
   // 2022-2024: série do sistema combinado ("Demonstrações Financeiras Combinadas – Sicoob"),
-  // conforme tabulada no Relatório de Crédito da Moody's Local — ver METHODOLOGY_NOTES.
+  // conforme tabulada no Relatório de Crédito da Moody's Local — ver ASSUMPTIONS.
   {
     institution: 'sicoob',
     year: 2022,
@@ -125,7 +123,7 @@ export const RAW_DATA_INPUT: RawYearData[] = [
     inadimplencia: 0.072,
   },
   // 2025: carteira de crédito é a "carteira ampliada líquida" (base mais ampla que a dos anos
-  // anteriores, que usam a carteira de crédito "cheia") — ver METHODOLOGY_NOTES.
+  // anteriores, que usam a carteira de crédito "cheia") — ver ASSUMPTIONS.
   {
     institution: 'sicoob',
     year: 2025,
@@ -144,7 +142,6 @@ export const RAW_DATA_INPUT: RawYearData[] = [
     carteiraCredito: 1_004_900,
     eficiencia: 0.292,
     inadimplencia: 0.0251,
-    lcr: 2.1156,
   },
   {
     institution: 'bb',
@@ -155,7 +152,6 @@ export const RAW_DATA_INPUT: RawYearData[] = [
     carteiraCredito: 1_108_000,
     eficiencia: 0.275,
     inadimplencia: 0.0292,
-    lcr: 1.7802,
   },
   {
     institution: 'bb',
@@ -166,11 +162,10 @@ export const RAW_DATA_INPUT: RawYearData[] = [
     carteiraCredito: 1_278_000,
     eficiencia: 0.256,
     inadimplencia: 0.0332,
-    lcr: 1.5219,
   },
   // 2025: ano marcado por uma crise de inadimplência no agronegócio — inadimplência >90 dias
   // inclui o impacto de um caso pontual na carteira de TVM de uma empresa do atacado (R$3,6 bi);
-  // ex-esse evento, o índice seria 4,88% — ver METHODOLOGY_NOTES.
+  // ex-esse evento, o índice seria 4,88% — ver ASSUMPTIONS.
   {
     institution: 'bb',
     year: 2025,
@@ -183,7 +178,7 @@ export const RAW_DATA_INPUT: RawYearData[] = [
   },
   // --- Itaú Unibanco ---
   // 2022-2025: patrimônio líquido e ativos totais na base "gerencial" divulgada em português
-  // (ver METHODOLOGY_NOTES sobre a quebra de base contábil).
+  // (ver ASSUMPTIONS sobre a quebra de base contábil).
   {
     institution: 'itau',
     year: 2022,
@@ -193,7 +188,6 @@ export const RAW_DATA_INPUT: RawYearData[] = [
     carteiraCredito: 1_141_500,
     eficiencia: 0.412,
     inadimplencia: 0.029,
-    lcr: 1.644,
   },
   {
     institution: 'itau',
@@ -204,7 +198,6 @@ export const RAW_DATA_INPUT: RawYearData[] = [
     carteiraCredito: 1_177_000,
     eficiencia: 0.399,
     inadimplencia: 0.028,
-    lcr: 1.918,
   },
   {
     institution: 'itau',
@@ -215,7 +208,6 @@ export const RAW_DATA_INPUT: RawYearData[] = [
     carteiraCredito: 1_359_000,
     eficiencia: 0.395,
     inadimplencia: 0.024,
-    lcr: 2.213,
   },
   {
     institution: 'itau',
@@ -420,265 +412,486 @@ export const NETWORK_SNAPSHOTS: NetworkSnapshot[] = [
   },
 ]
 
-export interface MethodologyNote {
-  institution: InstitutionId
-  note: string
+/* -------------------------------------------------------------------------- */
+/*  Metodologia — fórmulas, premissas e limitações                            */
+/* -------------------------------------------------------------------------- */
+
+export interface Formula {
+  /** Nome por extenso do indicador. */
+  name: string
+  /** Sigla, quando o indicador é conhecido por ela. */
+  abbr?: string
+  /** Numerador e denominador da razão, escritos como aparecem nas demonstrações. */
+  numerator: string
+  denominator: string
+  /** Fator que multiplica a razão (ex.: "× 100"), quando existe. */
+  factor?: string
+  /** O que o número quer dizer, em uma frase. */
+  meaning: string
+  /** Unidade do resultado. */
+  unit: string
+  /** Sentido da leitura: qual direção é desempenho melhor. */
+  better: 'max' | 'min'
+  /** Ícone do heroicons usado no cabeçalho do cartão. */
+  icon: 'trending' | 'pie' | 'scale' | 'warning' | 'flag' | 'globe'
 }
 
-export const METHODOLOGY_NOTES: MethodologyNote[] = [
+export const FORMULAS: Formula[] = [
   {
-    institution: 'sicoob',
-    note:
-      'Cooperativa de crédito: não tem acionistas nem divulga "ROE" no sentido bancário tradicional. Para comparar com BB e Itaú, o ROE e o ROA exibidos aqui foram calculados como sobras líquidas combinadas ÷ patrimônio líquido e ÷ ativos totais — na prática, muito próximos da "rentabilidade sobre ativos tangíveis" que o próprio Sicoob divulga (2,8% em 2023 e 2,3% em 2024).',
+    name: 'Retorno sobre o Patrimônio Líquido',
+    abbr: 'ROE',
+    numerator: 'Lucro Líquido',
+    denominator: 'Patrimônio Líquido',
+    factor: '× 100',
+    meaning: 'Quanto de resultado a instituição gera para cada real de capital próprio.',
+    unit: '% ao ano',
+    better: 'max',
+    icon: 'trending',
   },
   {
-    institution: 'sicoob',
-    note:
-      'O índice de inadimplência do Sicoob é o "índice de ativos problemáticos" (créditos classificados de E a H), calculado pela Moody\'s Local — um critério mais amplo do que o de BB e Itaú, pois inclui reestruturações e sinais de dificuldade de pagamento, não apenas atraso acima de 90 dias. Os valores não são diretamente comparáveis aos das outras duas instituições.',
+    name: 'Retorno sobre Ativos',
+    abbr: 'ROA',
+    numerator: 'Lucro Líquido',
+    denominator: 'Ativos Totais',
+    factor: '× 100',
+    meaning: 'Quanto de resultado cada real de ativo produz — mede a eficiência do balanço inteiro.',
+    unit: '% ao ano',
+    better: 'max',
+    icon: 'pie',
   },
   {
-    institution: 'bb',
-    note:
-      'Lucro líquido "ajustado" e patrimônio líquido de dez/2024 estimado a partir do balanço de set/2024 (R$ 187,4 bi) e do resultado do período — o valor exato de fechamento do exercício não foi encontrado nas fontes públicas consultadas.',
+    name: 'Índice de Eficiência',
+    numerator: 'Despesas Administrativas',
+    denominator: 'Receitas Operacionais',
+    factor: '× 100',
+    meaning: 'Quanto da receita é consumida pela estrutura antes de virar resultado.',
+    unit: '%',
+    better: 'min',
+    icon: 'scale',
   },
   {
-    institution: 'bb',
-    note:
-      'O ROE "oficial" divulgado pelo BB (RSPL, ~21%) usa patrimônio líquido médio ajustado, por isso é ligeiramente maior do que o ROE padronizado exibido aqui (lucro ÷ PL final do exercício).',
+    name: 'Inadimplência acima de 90 dias',
+    numerator: 'Carteira Vencida > 90 dias',
+    denominator: 'Carteira de Crédito',
+    factor: '× 100',
+    meaning: 'Parcela da carteira com pagamento em atraso há mais de noventa dias.',
+    unit: '% da carteira',
+    better: 'min',
+    icon: 'warning',
   },
   {
-    institution: 'itau',
-    note:
-      'Lucro líquido "recorrente" (ajustado por itens não recorrentes, como efeitos de hiperinflação na Argentina). O ROE "recorrente" divulgado pelo Itaú (21,0% em 2023 e 22,1% em 2024) é maior do que o ROE padronizado exibido aqui porque usa patrimônio líquido médio e lucro ajustado.',
+    name: 'Índice de Ativos Problemáticos',
+    abbr: 'E–H · usado no lugar da inadimplência para o Sicoob',
+    numerator: 'Carteira Classificada de E a H',
+    denominator: 'Carteira de Crédito',
+    factor: '× 100',
+    meaning: 'Critério mais amplo: inclui reestruturações e sinais de dificuldade, não só o atraso.',
+    unit: '% da carteira',
+    better: 'min',
+    icon: 'flag',
   },
   {
-    institution: 'itau',
-    note:
-      'Carteira de crédito de 2023 derivada do crescimento anual de 15,5% divulgado no release de resultados do 4T24 (R$ 1,359 tri em 2024).',
-  },
-  {
-    institution: 'sicoob',
-    note:
-      'Market share estimado usando o ativo total "sistema Sicoob" (R$ 298,4 bi, que soma banco cooperativo + centrais + cooperativas singulares) — uma base de consolidação diferente da usada para BB e Itaú no IF.data (ver nota de metodologia de `MARKET_SHARE`). No IF.data, a entrada isolada "Banco Sicoob" aparece com apenas R$ 130,5 bi, pois não inclui as cooperativas singulares.',
-  },
-  {
-    institution: 'bb',
-    note:
-      'Não encontramos, em fonte primária confiável, o número de municípios atendidos pelo BB divulgado pela própria instituição — o número de municípios exibido aqui vem do ESTBAN (Bacen), não de um release do BB.',
-  },
-  {
-    institution: 'itau',
-    note:
-      'O número de municípios com agência Itaú exibido aqui vem do ESTBAN (Bacen, jan/2026) — o Itaú não divulga esse número diretamente em seus releases.',
-  },
-  {
-    institution: 'sicoob',
-    note:
-      'Sobras líquidas, patrimônio líquido, ativos totais e carteira de crédito de 2022–2024 vêm da série histórica do sistema combinado ("Demonstrações Financeiras Combinadas – Sicoob") tabulada no Relatório de Crédito da Moody\'s Local de julho/2025 — a mesma base de consolidação (banco cooperativo + centrais + singulares) usada nas demais métricas do Sicoob aqui. O índice de eficiência do sistema combinado não foi divulgado para 2022.',
-  },
-  {
-    institution: 'sicoob',
-    note:
-      'Carteira de crédito de 2025 é a "carteira ampliada líquida" (R$ 256 bi, divulgação institucional de abril/2026) — uma base mais ampla do que a "carteira de crédito" cheia usada em 2023 e 2024, o que explica parte do salto entre os dois anos. Índice de eficiência e inadimplência do sistema combinado não encontrados para 2025 em fonte primária confiável até o levantamento destes dados.',
-  },
-  {
-    institution: 'itau',
-    note:
-      'Patrimônio líquido e ativos totais de 2022–2025 vêm das demonstrações contábeis em base "gerencial"/IFRS consolidada, divulgadas em português (mesma base das demais métricas do Itaú aqui).',
-  },
-  {
-    institution: 'itau',
-    note:
-      'LCR é a média do trimestre encerrado em 31 de dezembro de cada ano (metodologia do próprio banco) — 2022 vem do Form 20-F FY2022, 2023 do Form 20-F FY2023, e 2024 do Relatório Pilar 3 (Gerenciamento de Riscos e Capital) 4T25, que traz a série histórica. Não encontramos o valor de 2025 em fonte primária até o levantamento destes dados.',
-  },
-  {
-    institution: 'bb',
-    note:
-      'LCR de 2022 vem da API de dados abertos do próprio BB (relatório "liq1", registrado no catálogo do Bacen), com o valor médio do trimestre já calculado pelo banco em seu comentário oficial; 2023–2024 vêm do Relatório Pilar 3 (Gerenciamento de Riscos e Capital) de cada ano. Não encontramos o valor de 2025 em fonte primária até o levantamento destes dados.',
-  },
-  {
-    institution: 'bb',
-    note:
-      'A inadimplência acima de 90 dias de 2025 (5,17%) inclui o impacto de um caso pontual na carteira de títulos e valores mobiliários (TVM) de uma empresa do segmento de atacado, no valor de R$ 3,6 bi — desconsiderando esse evento, o índice teria ficado em 4,88%, segundo o próprio banco.',
-  },
-  {
-    institution: 'itau',
-    note:
-      'Carteira de crédito de 2025 (R$ 1,49 tri) é a "carteira de crédito ampliada" divulgada no release de resultados do 4T25 — mesma base conceitual usada nos demais anos da série do Itaú aqui.',
+    name: 'Participação de Mercado',
+    numerator: 'Ativos Totais da Instituição',
+    denominator: 'Ativos Totais do SFN',
+    factor: '× 100',
+    meaning: 'Peso da instituição dentro do Sistema Financeiro Nacional.',
+    unit: '% do SFN',
+    better: 'max',
+    icon: 'globe',
   },
 ]
 
-export interface SourceEntry {
-  institution: InstitutionId
-  label: string
-  url: string
+export interface AssumptionGroup {
+  /** Título do bloco: "Premissas gerais" ou o nome da instituição. */
+  title: string
+  /** Uma linha dizendo a que o bloco se aplica. */
+  scope: string
+  /** Cor do filete do bloco, quando ele pertence a uma instituição. */
+  institution?: InstitutionId
+  items: string[]
 }
 
-export const SOURCES: SourceEntry[] = [
+export const ASSUMPTIONS: AssumptionGroup[] = [
   {
-    institution: 'sicoob',
-    label: 'Sicoob tem resultado recorde de R$ 8,4 bi em 2023 (Exame)',
-    url: 'https://exame.com/economia/sicoob-tem-resultado-recorde-de-r-84-bi-em-2023-e-parte-do-recurso-sera-distribuida-aos-cooperados/',
+    title: 'Premissas gerais',
+    scope: 'Válidas para as três instituições, para manter a comparação legítima.',
+    items: [
+      'Todos os valores são consolidados e vêm de demonstrações auditadas ou de releases oficiais de resultados, em R$ milhões, exatamente como reportados — sem reexpressão por inflação.',
+      'ROE e ROA usam o saldo de fechamento do exercício, não a média entre abertura e fechamento. A convenção é a mesma nas três instituições.',
+      'O comparativo cobre 2022–2025, os quatro exercícios com dado publicado para as três instituições.',
+      'Quando um indicador não foi localizado em fonte primária para um par instituição/ano, a célula fica vazia e a linha do gráfico se interrompe — nenhum valor é interpolado ou estimado.',
+      'Lucro líquido é o número "ajustado" no Banco do Brasil, o "recorrente" no Itaú e as sobras líquidas combinadas no Sicoob.',
+    ],
   },
   {
+    title: 'Sicoob',
+    scope: 'Série do sistema combinado: banco cooperativo, centrais e cooperativas singulares.',
     institution: 'sicoob',
-    label: 'Ativos do Sicoob crescem 25% e encerram 2023 em R$ 298,4 bilhões (Exame)',
-    url: 'https://exame.com/economia/ativos-do-sicoob-crescem-25-e-encerram-2023-em-r-2984-bilhoes/',
+    items: [
+      'A série 2022–2024 vem das Demonstrações Financeiras Combinadas, tabuladas no Relatório de Crédito da Moody\'s Local de julho de 2025.',
+      'A inadimplência exibida é o índice de ativos problemáticos (carteira classificada de E a H), não o atraso acima de 90 dias.',
+      'ROE e ROA são derivados aqui: a cooperativa não divulga essas métricas, e sim a rentabilidade sobre ativos tangíveis.',
+      'A carteira de crédito de 2025 é a carteira ampliada líquida — base mais ampla que a carteira cheia usada em 2023 e 2024.',
+      'O market share usa o ativo do sistema combinado, base de consolidação diferente da usada para BB e Itaú no IF.data.',
+    ],
   },
   {
-    institution: 'sicoob',
-    label: 'Relatório de Crédito — Banco Cooperativo Sicoob (Moody\'s Local)',
+    title: 'Banco do Brasil',
+    scope: 'Sumário do Resultado e demonstrações contábeis consolidadas de cada exercício.',
+    institution: 'bb',
+    items: [
+      'Lucro líquido ajustado, conforme o Sumário do Resultado de cada exercício.',
+      'O ROE oficial divulgado pelo banco (RSPL) usa patrimônio líquido médio ajustado e por isso é maior que o ROE padronizado exibido aqui.',
+      'O patrimônio líquido de dez/2024 foi estimado a partir do balanço de set/2024 e do resultado do período — o valor exato de fechamento não foi localizado em fonte pública.',
+      'A inadimplência de 2025 inclui um caso pontual de R$ 3,6 bi na carteira de TVM de uma empresa do atacado; ex-esse evento, o índice seria 4,88%.',
+    ],
+  },
+  {
+    title: 'Itaú Unibanco',
+    scope: 'Base gerencial/IFRS consolidada, divulgada em português.',
+    institution: 'itau',
+    items: [
+      'Lucro líquido recorrente, ajustado por itens não recorrentes como os efeitos de hiperinflação na Argentina.',
+      'Patrimônio líquido e ativos totais na base gerencial/IFRS consolidada — mesma base das demais métricas do Itaú aqui.',
+      'A carteira de crédito é a carteira ampliada em todos os anos da série.',
+      'A carteira de 2023 foi derivada do crescimento anual de 15,5% divulgado no release do 4T24.',
+    ],
+  },
+]
+
+/** O que este comparativo não consegue afirmar, e por quê. */
+export const LIMITATIONS: string[] = [
+  'Comparar uma cooperativa com dois bancos tem limite: o Sicoob distribui sobras aos cooperados, não remunera acionistas e tem estrutura tributária própria — o que afeta diretamente margem e rentabilidade.',
+  'A inadimplência do Sicoob (ativos problemáticos E–H) é conceitualmente mais ampla que a de BB e Itaú (atraso acima de 90 dias). As linhas desse gráfico não são comparáveis 1:1.',
+  'O índice de eficiência do Sicoob não é divulgado para o sistema combinado em todos os anos da série — 2022 e 2025 seguem em aberto, e a inadimplência de 2025 também.',
+  'ROE e ROA são recalculados aqui sobre saldos de fechamento. Os números oficiais de cada instituição usam saldos médios e resultados ajustados, e por isso são sistematicamente mais altos.',
+  'A contagem de agências tem datas-base diferentes: BB e Itaú vêm do ESTBAN (jan/2026); o Sicoob vem de divulgação institucional própria (2023–2024), porque as cooperativas singulares não aparecem no ESTBAN sob esse nome.',
+  'O market share é estimado, não publicado: o Banco Central não divulga um ranking direto de participação por instituição.',
+]
+
+/* -------------------------------------------------------------------------- */
+/*  Fontes de dados — referências na ABNT NBR 6023:2018                       */
+/* -------------------------------------------------------------------------- */
+
+export type ReferenceGroupId = InstitutionId | 'geral'
+
+export interface Reference {
+  group: ReferenceGroupId
+  /** Autoria em caixa alta, como pede a norma. Vazio quando a obra não tem autor. */
+  author: string
+  /** O que antecede o elemento destacado — o título do artigo, em periódicos. */
+  before?: string
+  /** Elemento em destaque: o título da obra ou o nome do periódico. */
+  emphasis: string
+  /** Subtítulo, local, editora, ano e notas — o que fecha a referência. */
+  after: string
+  url: string
+  /** Data de acesso, no formato abreviado da norma. */
+  accessedAt: string
+  /** Anotação editorial, fora da referência: o que este documento sustenta aqui. */
+  note?: string
+}
+
+const ACCESS = '4 set. 2026'
+
+export interface ReferenceGroup {
+  id: ReferenceGroupId
+  title: string
+  /** Como as fontes daquele grupo foram usadas. */
+  intro: string
+}
+
+export const REFERENCE_GROUPS: ReferenceGroup[] = [
+  {
+    id: 'sicoob',
+    title: 'Sicoob',
+    intro:
+      'A série financeira vem das Demonstrações Financeiras Combinadas do sistema, tabuladas por agência de rating; os dados de rede e de 2025 vêm de divulgação institucional reproduzida na imprensa especializada.',
+  },
+  {
+    id: 'bb',
+    title: 'Banco do Brasil',
+    intro:
+      'Releases de Relações com Investidores e demonstrações contábeis consolidadas de cada exercício, complementados por cobertura de imprensa que reproduz esses mesmos números.',
+  },
+  {
+    id: 'itau',
+    title: 'Itaú Unibanco',
+    intro:
+      'Releases de resultados e análises gerenciais do banco, mais os formulários arquivados na SEC, que trazem a base IFRS auditada.',
+  },
+  {
+    id: 'geral',
+    title: 'Sistema financeiro e cartografia',
+    intro:
+      'Fontes que descrevem o sistema como um todo — base do market share e da contagem de agências por unidade da federação — e o contorno do mapa.',
+  },
+]
+
+export const REFERENCES: Reference[] = [
+  // --- Sicoob ---
+  {
+    group: 'sicoob',
+    author: "MOODY'S LOCAL BRASIL.",
+    emphasis: 'Relatório de crédito',
+    after: ": Banco Cooperativo Sicoob S.A. São Paulo: Moody's Local, 21 jul. 2025.",
     url: 'https://moodyslocal.com.br/wp-content/uploads/2025/07/Relatorio-de-Credito_Banco-Sicoob.pdf',
+    accessedAt: ACCESS,
+    note: 'Série 2021–2024 do sistema combinado: sobras líquidas, patrimônio líquido, ativos totais e índice de ativos problemáticos.',
   },
   {
-    institution: 'sicoob',
-    label: 'Relatório Anual 2024 (Sicoob)',
+    group: 'sicoob',
+    author: 'SICOOB.',
+    emphasis: 'Relatório anual 2024',
+    after: '. Brasília, DF: Sicoob Confederação, 2025.',
     url: 'https://www.sicoob.com.br/documents/3044975/255333434/Relat%C3%B3rio+Anual+2024.pdf',
+    accessedAt: ACCESS,
+    note: 'Número de cooperados e panorama da rede em 2024.',
   },
   {
-    institution: 'sicoob',
-    label: 'Relatório Anual 2023 (Sicoob) — municípios atendidos e agências',
+    group: 'sicoob',
+    author: 'SICOOB.',
+    emphasis: 'Relatório anual 2023',
+    after: '. Brasília, DF: Sicoob Confederação, 2024.',
     url: 'https://www.sicoob.com.br/documents/2222345/8131683/Relat%C3%B3rio+2023__.pdf',
+    accessedAt: ACCESS,
+    note: 'Municípios atendidos, municípios de presença exclusiva e pontos de atendimento.',
   },
   {
-    institution: 'sicoob',
-    label: 'Sicoob gera R$ 39,96 bilhões em benefícios econômicos em 2024 (cooperados, agências, estados)',
+    group: 'sicoob',
+    author: '',
+    before: 'SICOOB tem resultado recorde de R$ 8,4 bi em 2023 e parte do recurso será distribuída aos cooperados.',
+    emphasis: 'Exame',
+    after: ', São Paulo, 2024.',
+    url: 'https://exame.com/economia/sicoob-tem-resultado-recorde-de-r-84-bi-em-2023-e-parte-do-recurso-sera-distribuida-aos-cooperados/',
+    accessedAt: ACCESS,
+  },
+  {
+    group: 'sicoob',
+    author: '',
+    before: 'ATIVOS do Sicoob crescem 25% e encerram 2023 em R$ 298,4 bilhões.',
+    emphasis: 'Exame',
+    after: ', São Paulo, 2024.',
+    url: 'https://exame.com/economia/ativos-do-sicoob-crescem-25-e-encerram-2023-em-r-2984-bilhoes/',
+    accessedAt: ACCESS,
+  },
+  {
+    group: 'sicoob',
+    author: '',
+    before: 'SICOOB gera R$ 39,96 bilhões em benefícios econômicos em 2024.',
+    emphasis: 'Portal do Cooperativismo Financeiro',
+    after: ', [S. l.], 2025.',
     url: 'https://cooperativismodecredito.coop.br/2025/04/sicoob-gera-r-3996-bilhoes-em-beneficios-economicos-em-2024/',
+    accessedAt: ACCESS,
+    note: 'Cooperados, agências e presença por estado em 2024.',
   },
   {
-    institution: 'bb',
-    label: 'Análise do Desempenho 4T23 (Banco do Brasil) — dados de 2022 e 2023',
-    url: 'https://api.mziq.com/mzfilemanager/v2/d/5760dff3-15e1-4962-9e81-322a0b3d0bbd/8bff3233-96f7-c182-e4e0-62ed3273412e?origin=1',
+    group: 'sicoob',
+    author: '',
+    before: 'SICOOB alcança resultado recorde de R$ 11,2 bilhões em 2025.',
+    emphasis: 'Portal do Cooperativismo Financeiro',
+    after: ', [S. l.], 2026.',
+    url: 'https://cooperativismodecredito.coop.br/2026/04/sicoob-alcanca-resultado-recorde-de-r-112-bilhoes-em-2025/',
+    accessedAt: ACCESS,
+    note: 'Sobras líquidas de 2025. O release não divulga índice de eficiência nem inadimplência do sistema.',
   },
   {
-    institution: 'bb',
-    label: 'API de Dados Abertos do BB — Relatório LIQ1 (LCR), 2022',
-    url: 'https://api.externo.bb.com.br/dadosabertos/v1/relatorios/liq1/2022-4',
-  },
-  {
-    institution: 'bb',
-    label: 'Relatório de Gerenciamento de Riscos e Capital — Pilar 3, 4T2023 (LCR)',
-    url: 'https://api.mziq.com/mzfilemanager/v2/d/5760dff3-15e1-4962-9e81-322a0b3d0bbd/29228443-b61c-66f0-ae8f-453ec67a2a2c?origin=2',
-  },
-  {
-    institution: 'bb',
-    label: 'Relatório de Gerenciamento de Riscos e Capital — Pilar 3, 4T2024 (LCR)',
-    url: 'https://api.mziq.com/mzfilemanager/v2/d/5760dff3-15e1-4962-9e81-322a0b3d0bbd/d023c282-1ea0-2796-eeb3-07f59602adb3?origin=2',
-  },
-  {
-    institution: 'bb',
-    label: 'Banco do Brasil tem lucro líquido ajustado recorde de R$ 35,6 bilhões em 2023 (Agência Gov)',
-    url: 'https://agenciagov.ebc.com.br/noticias/202402/banco-do-brasil-tem-lucro-liquido-ajustado-recorde-de-r-35-6-bilhoes-em-2023',
-  },
-  {
-    institution: 'bb',
-    label: 'Banco do Brasil tem lucro recorde de R$ 37,9 bi em 2024 (Agência Brasil)',
-    url: 'https://agenciabrasil.ebc.com.br/economia/noticia/2025-02/banco-do-brasil-tem-lucro-recorde-de-r-379-bi-em-2024',
-  },
-  {
-    institution: 'bb',
-    label: 'Banco do Brasil (BBAS3): 4T fraco — não julgue o trimestre pelo lucro líquido (XP Investimentos)',
-    url: 'https://conteudos.xpi.com.br/acoes/relatorios/resultado-bbas3-bb-4t24/',
-  },
-  {
-    institution: 'bb',
-    label: 'Relações com Investidores — Sumário do Resultado (Banco do Brasil)',
-    url: 'https://api.mziq.com/mzfilemanager/v2/d/5760dff3-15e1-4962-9e81-322a0b3d0bbd/fb3957f5-2b55-aa96-b753-aa625b45ac02?origin=1',
-  },
-  {
-    institution: 'itau',
-    label: 'Itaú Unibanco registra lucro de R$ 35,6 bilhões em 2023, alta de 15,7% (CNN Brasil)',
-    url: 'https://www.cnnbrasil.com.br/economia/negocios/itau-unibanco-registra-lucro-de-r-356-bilhoes-em-2023-alta-de-157/',
-  },
-  {
-    institution: 'itau',
-    label: 'Lucro do Itaú Unibanco tem alta de 16,2% e soma R$ 41,4 bi em 2024 (Diário do Grande ABC)',
-    url: 'https://www.dgabc.com.br/Noticia/4201733/lucro-do-itau-unibanco-tem-alta-de-16-2-e-soma-r-41-4-bi-em-2024',
-  },
-  {
-    institution: 'itau',
-    label: 'Itaú Unibanco — Resultados 4T24 (release oficial de Relações com Investidores)',
-    url: 'https://www.itau.com.br/download-file/v2/d/42787847-4cf6-4461-94a5-40ed237dca33/1182c2ec-ea05-7a1c-bd2d-f1f392285245?origin=1',
-  },
-  {
-    institution: 'itau',
-    label: 'Itaú Unibanco (ITUB4) — Resultados 4T24 (XP Investimentos)',
-    url: 'https://conteudos.xpi.com.br/acoes/relatorios/resultados-itub4-itau-4t24/',
-  },
-  {
-    institution: 'itau',
-    label: 'Análise Gerencial da Operação 4T23 (Itaú Unibanco) — rede de agências e distribuição regional',
-    url: 'https://static.poder360.com.br/2024/02/itau-analise-gerencial-4T-2023.pdf',
-  },
-  {
-    institution: 'itau',
-    label: 'Form 20-F FY2022 (Itaú Unibanco, SEC) — dados IFRS de 2021 e 2022, LCR',
-    url: 'https://www.sec.gov/Archives/edgar/data/1132597/000129281423001950/itubform20f_2022.htm',
-  },
-  {
-    institution: 'itau',
-    label: 'Form 20-F FY2023 (Itaú Unibanco, SEC) — LCR de 2023',
-    url: 'https://www.sec.gov/Archives/edgar/data/1132597/000129281424001692/itubform20f_2023.htm',
-  },
-  {
-    institution: 'itau',
-    label: 'Release de resultados 4T22 (SEC 6-K) — lucro, eficiência e inadimplência de 2022',
-    url: 'https://sec.gov/Archives/edgar/data/1132597/000129281423000330/ex99-2.htm',
-  },
-  {
-    institution: 'itau',
-    label: 'Relatório de Gerenciamento de Riscos e Capital — Pilar 3, 4T2025 (LCR de 2024)',
-    url: 'https://filemanager-cdn.mziq.com/published/42787847-4cf6-4461-94a5-40ed237dca33/970c7455-195a-439f-aa33-e08321f5d8c1_gerenciamento_de_riscos_e_capital_pilar_3_4t25.pdf',
-  },
-  {
-    institution: 'itau',
-    label: 'Itaú Unibanco Holding S.A. — Demonstrações Contábeis Completas, 31/12/2025 (balanço, DRE consolidados)',
-    url: 'https://www.itau.com.br/relacoes-com-investidores',
-  },
-  {
-    institution: 'itau',
-    label: 'Itaú (ITUB4) lucra R$ 12,3 bi no 4T25; no ano, lucro recorrente foi de R$ 46,8 bi — ROE, eficiência, inadimplência e carteira ampliada (InfoMoney)',
-    url: 'https://www.infomoney.com.br/mercados/itau-itub4-resultados-quarto-trimestre-2025/',
-  },
-  {
-    institution: 'bb',
-    label: 'Banco do Brasil (BBAS3) — Demonstrações Contábeis Completas, 31/12/2025 (balanço, DRE consolidados)',
-    url: 'https://ri.bb.com.br/',
-  },
-  {
-    institution: 'bb',
-    label: 'Banco do Brasil (BBAS3): lucro ajustado de R$ 5,7 bi no 4T25, R$ 20,7 bi no ano, ROE, eficiência e inadimplência (Seu Dinheiro)',
-    url: 'https://www.seudinheiro.com/2026/empresas/balanco-banco-do-brasil-bb-bbas3-4t25-2025-lucro-rentabilidade-roe-inadimplencia-miql/',
-  },
-  {
-    institution: 'sicoob',
-    label: 'Sistema Cooperativo Sicoob atinge R$ 92,8 bi em carteira agro e R$ 430,1 bi em ativos totais em 2025 (carteira ampliada, patrimônio líquido)',
+    group: 'sicoob',
+    author: '',
+    before:
+      'SISTEMA Cooperativo Sicoob atinge R$ 92,8 bilhões em carteira agro e R$ 430,1 bilhões em ativos totais em 2025.',
+    emphasis: 'MundoCoop',
+    after: ', [S. l.], 2026.',
     url: 'https://mundocoop.com.br/economia-negocios/sistema-cooperativa-sicoob-atinge-r-928-bilhoes-em-carteira-agro-e-r-430-bilhoes-em-ativos-totais-em-2025/',
+    accessedAt: ACCESS,
+    note: 'Ativos totais, patrimônio líquido e carteira ampliada de 2025.',
+  },
+
+  // --- Banco do Brasil ---
+  {
+    group: 'bb',
+    author: 'BANCO DO BRASIL.',
+    emphasis: 'Análise do desempenho',
+    after: ': 4T23. Brasília, DF: Banco do Brasil, 2024.',
+    url: 'https://api.mziq.com/mzfilemanager/v2/d/5760dff3-15e1-4962-9e81-322a0b3d0bbd/8bff3233-96f7-c182-e4e0-62ed3273412e?origin=1',
+    accessedAt: ACCESS,
+    note: 'Lucro, patrimônio, ativos, carteira, eficiência e inadimplência de 2022 e 2023.',
   },
   {
-    institution: 'sicoob',
-    label: 'Sicoob alcança resultado recorde de R$ 11,2 bilhões em 2025 (sobras líquidas)',
-    url: 'https://www.juventudebm.com/2026/04/sicoob-alcanca-resultado-recorde-de-r.html',
+    group: 'bb',
+    author: 'BANCO DO BRASIL.',
+    emphasis: 'Sumário do resultado',
+    after: '. Brasília, DF: Banco do Brasil, [2025].',
+    url: 'https://api.mziq.com/mzfilemanager/v2/d/5760dff3-15e1-4962-9e81-322a0b3d0bbd/fb3957f5-2b55-aa96-b753-aa625b45ac02?origin=1',
+    accessedAt: ACCESS,
   },
-]
-
-export interface GeneralSourceEntry {
-  label: string
-  url: string
-}
-
-/** Fontes que cobrem o sistema financeiro como um todo, não uma instituição específica. */
-export const GENERAL_SOURCES: GeneralSourceEntry[] = [
   {
-    label: 'Relatório de Economia Bancária 2023 (Banco Central do Brasil) — concentração bancária, base do cálculo de market share',
+    group: 'bb',
+    author: 'BANCO DO BRASIL.',
+    emphasis: 'Demonstrações contábeis completas',
+    after: ': exercício social encerrado em 31 de dezembro de 2025. Brasília, DF: Banco do Brasil, 2026.',
+    url: 'https://ri.bb.com.br/',
+    accessedAt: ACCESS,
+    note: 'Balanço e demonstração de resultado consolidados de 2025.',
+  },
+  {
+    group: 'bb',
+    author: '',
+    before: 'BANCO do Brasil tem lucro líquido ajustado recorde de R$ 35,6 bilhões em 2023.',
+    emphasis: 'Agência Gov',
+    after: ', Brasília, DF, 2024.',
+    url: 'https://agenciagov.ebc.com.br/noticias/202402/banco-do-brasil-tem-lucro-liquido-ajustado-recorde-de-r-35-6-bilhoes-em-2023',
+    accessedAt: ACCESS,
+  },
+  {
+    group: 'bb',
+    author: '',
+    before: 'BANCO do Brasil tem lucro recorde de R$ 37,9 bi em 2024.',
+    emphasis: 'Agência Brasil',
+    after: ', Brasília, DF, 2025.',
+    url: 'https://agenciabrasil.ebc.com.br/economia/noticia/2025-02/banco-do-brasil-tem-lucro-recorde-de-r-379-bi-em-2024',
+    accessedAt: ACCESS,
+  },
+  {
+    group: 'bb',
+    author: 'XP INVESTIMENTOS.',
+    before: 'Banco do Brasil (BBAS3): 4T fraco — não julgue o trimestre pelo lucro líquido.',
+    emphasis: 'Conteúdos XP',
+    after: ', São Paulo, 2025.',
+    url: 'https://conteudos.xpi.com.br/acoes/relatorios/resultado-bbas3-bb-4t24/',
+    accessedAt: ACCESS,
+    note: 'Eficiência, inadimplência e carteira de 2024.',
+  },
+  {
+    group: 'bb',
+    author: '',
+    before:
+      'BALANÇO do Banco do Brasil: lucro ajustado de R$ 5,7 bi no 4T25 e de R$ 20,7 bi no ano, com ROE, eficiência e inadimplência.',
+    emphasis: 'Seu Dinheiro',
+    after: ', São Paulo, 2026.',
+    url: 'https://www.seudinheiro.com/2026/empresas/balanco-banco-do-brasil-bb-bbas3-4t25-2025-lucro-rentabilidade-roe-inadimplencia-miql/',
+    accessedAt: ACCESS,
+  },
+
+  // --- Itaú Unibanco ---
+  {
+    group: 'itau',
+    author: 'ITAÚ UNIBANCO HOLDING S.A.',
+    emphasis: 'Análise gerencial da operação',
+    after: ': 4T23. São Paulo: Itaú Unibanco, 2024.',
+    url: 'https://static.poder360.com.br/2024/02/itau-analise-gerencial-4T-2023.pdf',
+    accessedAt: ACCESS,
+    note: 'Rede de agências e distribuição regional.',
+  },
+  {
+    group: 'itau',
+    author: 'ITAÚ UNIBANCO HOLDING S.A.',
+    emphasis: 'Resultados 4T24',
+    after: ': release de resultados. São Paulo: Itaú Unibanco, 2025.',
+    url: 'https://www.itau.com.br/download-file/v2/d/42787847-4cf6-4461-94a5-40ed237dca33/1182c2ec-ea05-7a1c-bd2d-f1f392285245?origin=1',
+    accessedAt: ACCESS,
+  },
+  {
+    group: 'itau',
+    author: 'ITAÚ UNIBANCO HOLDING S.A.',
+    emphasis: 'Form 20-F',
+    after:
+      ': fiscal year 2022. Washington, DC: U.S. Securities and Exchange Commission, 2023. Arquivamento anual de emissor privado estrangeiro.',
+    url: 'https://www.sec.gov/Archives/edgar/data/1132597/000129281423001950/itubform20f_2022.htm',
+    accessedAt: ACCESS,
+    note: 'Base IFRS auditada de 2021 e 2022.',
+  },
+  {
+    group: 'itau',
+    author: 'ITAÚ UNIBANCO HOLDING S.A.',
+    emphasis: 'Release de resultados 4T22',
+    after: '. Washington, DC: U.S. Securities and Exchange Commission, 2023. Formulário 6-K.',
+    url: 'https://sec.gov/Archives/edgar/data/1132597/000129281423000330/ex99-2.htm',
+    accessedAt: ACCESS,
+    note: 'Lucro, eficiência e inadimplência de 2022.',
+  },
+  {
+    group: 'itau',
+    author: 'ITAÚ UNIBANCO HOLDING S.A.',
+    emphasis: 'Demonstrações contábeis completas',
+    after: ': exercício social encerrado em 31 de dezembro de 2025. São Paulo: Itaú Unibanco, 2026.',
+    url: 'https://www.itau.com.br/relacoes-com-investidores',
+    accessedAt: ACCESS,
+  },
+  {
+    group: 'itau',
+    author: '',
+    before: 'ITAÚ Unibanco registra lucro de R$ 35,6 bilhões em 2023, alta de 15,7%.',
+    emphasis: 'CNN Brasil',
+    after: ', São Paulo, 2024.',
+    url: 'https://www.cnnbrasil.com.br/economia/negocios/itau-unibanco-registra-lucro-de-r-356-bilhoes-em-2023-alta-de-157/',
+    accessedAt: ACCESS,
+  },
+  {
+    group: 'itau',
+    author: '',
+    before: 'LUCRO do Itaú Unibanco tem alta de 16,2% e soma R$ 41,4 bi em 2024.',
+    emphasis: 'Diário do Grande ABC',
+    after: ', Santo André, 2025.',
+    url: 'https://www.dgabc.com.br/Noticia/4201733/lucro-do-itau-unibanco-tem-alta-de-16-2-e-soma-r-41-4-bi-em-2024',
+    accessedAt: ACCESS,
+  },
+  {
+    group: 'itau',
+    author: 'XP INVESTIMENTOS.',
+    before: 'Itaú Unibanco (ITUB4): resultados do 4T24.',
+    emphasis: 'Conteúdos XP',
+    after: ', São Paulo, 2025.',
+    url: 'https://conteudos.xpi.com.br/acoes/relatorios/resultados-itub4-itau-4t24/',
+    accessedAt: ACCESS,
+  },
+  {
+    group: 'itau',
+    author: '',
+    before:
+      'ITAÚ (ITUB4) lucra R$ 12,3 bi no 4T25; no ano, lucro recorrente foi de R$ 46,8 bi, com ROE, eficiência, inadimplência e carteira ampliada.',
+    emphasis: 'InfoMoney',
+    after: ', São Paulo, 2026.',
+    url: 'https://www.infomoney.com.br/mercados/itau-itub4-resultados-quarto-trimestre-2025/',
+    accessedAt: ACCESS,
+  },
+
+  // --- Sistema financeiro e cartografia ---
+  {
+    group: 'geral',
+    author: 'BRASIL. Banco Central do Brasil.',
+    emphasis: 'Relatório de economia bancária 2023',
+    after: '. Brasília, DF: Bacen, 2024.',
     url: 'https://www.bcb.gov.br/content/publicacoes/relatorioeconomiabancaria/reb2023p.pdf',
+    accessedAt: ACCESS,
+    note: 'Concentração bancária — base do denominador usado no cálculo de market share.',
   },
   {
-    label: 'IF.data (Banco Central do Brasil) — ativos totais individuais por instituição, base dez/2023',
+    group: 'geral',
+    author: 'BRASIL. Banco Central do Brasil.',
+    emphasis: 'IF.data',
+    after: ': dados selecionados de entidades supervisionadas. Brasília, DF: Bacen, 2024. Base dez. 2023.',
     url: 'https://www3.bcb.gov.br/ifdata/index2024.html',
+    accessedAt: ACCESS,
+    note: 'Ativos totais individuais por instituição.',
   },
   {
-    label: 'ESTBAN — Estatística Bancária Mensal por Município (Banco Central do Brasil) — agências por UF/município, base jan/2026',
+    group: 'geral',
+    author: 'BRASIL. Banco Central do Brasil.',
+    emphasis: 'ESTBAN',
+    after: ': estatística bancária mensal por município. Brasília, DF: Bacen, 2026. Base jan. 2026.',
     url: 'https://www.bcb.gov.br/estatisticas/estatisticabancariamunicipios',
+    accessedAt: ACCESS,
+    note: 'Agências por unidade da federação e por município, para BB e Itaú.',
+  },
+  {
+    group: 'geral',
+    author: 'CAZANAVE, Victor.',
+    emphasis: '@svg-maps/brazil',
+    after: ': mapa vetorial das unidades da federação. Versão 2.0.0. [S. l.]: MapSVG, 2020. Licença CC BY 4.0.',
+    url: 'https://github.com/VictorCazanave/svg-maps/tree/master/packages/brazil',
+    accessedAt: ACCESS,
+    note: 'Contorno cartográfico do mapa de presença por agências.',
   },
 ]

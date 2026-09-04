@@ -7,7 +7,7 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
-import { INSTITUTIONS, RAW_DATA, YEARS, institutionById, type NumericIndicatorKey } from '../data'
+import { INSTITUTIONS, RAW_DATA, YEARS, type NumericIndicatorKey } from '../data'
 
 const RULE = 'rgba(23,23,23,0.10)'
 const MUTED = '#737373'
@@ -148,10 +148,6 @@ function LineSeriesChart({
   )
 }
 
-export function LucroLiquidoLineChart() {
-  return <LineSeriesChart indicator="lucroLiquido" scale={1 / 1000} valueSuffix=" bi" digits={1} />
-}
-
 export function EficienciaLineChart() {
   return <LineSeriesChart indicator="eficiencia" scale={100} valueSuffix="%" digits={1} />
 }
@@ -166,37 +162,4 @@ export function ROELineChart() {
 
 export function InadimplenciaLineChart() {
   return <LineSeriesChart indicator="inadimplencia" scale={100} valueSuffix="%" digits={1} />
-}
-
-export function hasLcrData(): boolean {
-  return RAW_DATA.some((d) => d.lcr !== undefined)
-}
-
-export function LCRLineChart() {
-  return <LineSeriesChart indicator="lcr" scale={100} valueSuffix="%" digits={0} />
-}
-
-/**
- * Separa quem nunca divulga o indicador de quem só não publicou o ano mais recente —
- * as duas lacunas têm causas diferentes e merecem frases diferentes na nota de rodapé.
- */
-export function coverageGaps(indicator: NumericIndicatorKey): {
-  never: string[]
-  latestOnly: string[]
-} {
-  const never: string[] = []
-  const latestOnly: string[] = []
-  const latest = YEARS[YEARS.length - 1]
-
-  for (const inst of INSTITUTIONS) {
-    const rows = RAW_DATA.filter((d) => d.institution === inst.id)
-    const hasAny = rows.some((d) => d[indicator] !== undefined)
-    const name = institutionById(inst.id).shortName
-    if (!hasAny) {
-      never.push(name)
-    } else if (rows.find((d) => d.year === latest)?.[indicator] === undefined) {
-      latestOnly.push(name)
-    }
-  }
-  return { never, latestOnly }
 }
