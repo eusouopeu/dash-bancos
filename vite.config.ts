@@ -4,6 +4,12 @@ import { defineConfig } from 'vite'
 
 // https://vite.dev/config/
 export default defineConfig({
-  base: '/dashboard-financeiro-ambev/',
+  base: '/dash-bancos/',
   plugins: [react(), tailwindcss()],
+  server: {
+    port: 5174,
+  },
+  preview: {
+    port: 5174,
+  },
 })

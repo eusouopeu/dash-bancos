@@ -1,4 +1,3 @@
-import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { INSTITUTIONS, type AgenciasEntry, institutionById } from '../data'
 import { formatNumber } from '../format'
 
@@ -6,41 +5,46 @@ interface AgenciasComparisonChartProps {
   data: AgenciasEntry[]
 }
 
+/**
+ * Barras horizontais em vez de verticais: os rótulos ficam legíveis sem rotação e a
+ * diferença de escala entre as redes aparece na mesma linha de leitura do número.
+ */
 export function AgenciasComparisonChart({ data }: AgenciasComparisonChartProps) {
   const ordered = INSTITUTIONS.map((inst) => data.find((d) => d.institution === inst.id)).filter(
     (d): d is AgenciasEntry => Boolean(d),
   )
-  const chartData = ordered.map((d) => ({
-    name: institutionById(d.institution).shortName,
-    count: d.count,
-    asOf: d.asOf,
-    institution: d.institution,
-  }))
+  const max = Math.max(...ordered.map((d) => d.count))
 
   return (
     <div>
-      <ResponsiveContainer width="100%" height={140}>
-        <BarChart data={chartData} margin={{ top: 4, right: 8, left: 8, bottom: 0 }}>
-          <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={{ stroke: '#e2e8f0' }} />
-          <YAxis hide />
-          <Tooltip
-            formatter={(value, _name, item) => [
-              `${formatNumber(Number(value))} (${item.payload.asOf})`,
-              'Agências/PAs',
-            ]}
-            contentStyle={{ borderRadius: 8, borderColor: '#e2e8f0', fontSize: 12 }}
-          />
-          <Bar dataKey="count" radius={[4, 4, 0, 0]}>
-            {chartData.map((entry) => (
-              <Cell key={entry.institution} fill={institutionById(entry.institution).color} />
-            ))}
-          </Bar>
-        </BarChart>
-      </ResponsiveContainer>
-      <ul className="mt-2 space-y-0.5 text-[10px] text-slate-400">
+      <ul className="space-y-3">
+        {ordered.map((d) => {
+          const inst = institutionById(d.institution)
+          return (
+            <li key={d.institution}>
+              <div className="mb-1 flex items-baseline justify-between gap-2">
+                <span className="font-mono text-[11px] text-muted">{inst.shortName}</span>
+                <span className="flex items-baseline gap-1.5">
+                  <span className="tnum font-mono text-sm font-semibold text-ink">
+                    {formatNumber(d.count)}
+                  </span>
+                  <span className="font-mono text-[10px] text-muted">{d.asOf}</span>
+                </span>
+              </div>
+              <span className="block h-2 overflow-hidden rounded-sm bg-rule-soft">
+                <span
+                  className="block h-full rounded-sm"
+                  style={{ width: `${(d.count / max) * 100}%`, backgroundColor: inst.color }}
+                />
+              </span>
+            </li>
+          )
+        })}
+      </ul>
+      <ul className="mt-4 space-y-1.5 border-t border-rule-soft pt-3 text-[10px] leading-relaxed text-muted">
         {ordered.map((d) => (
           <li key={d.institution}>
-            <span className="font-medium text-slate-500">{institutionById(d.institution).shortName}:</span>{' '}
+            <span className="font-mono text-ink">{institutionById(d.institution).shortName}</span>{' '}
             {d.note}
           </li>
         ))}

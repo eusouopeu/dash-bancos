@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { ChevronUpIcon, ChevronDownIcon } from '@heroicons/react/20/solid'
 import { INSTITUTIONS, RAW_DATA, institutionById, type YearData } from '../data'
-import { formatBRLBillions, formatPercent } from '../format'
+import { formatPercent } from '../format'
 import { PageHeader } from '../layout/PageHeader'
 
 type SortKey =
@@ -20,21 +20,29 @@ type SortKey =
 interface Column {
   key: SortKey
   label: string
+  /** Unidade da coluna — fica no cabeçalho em vez de repetida em cada célula. */
+  unit?: string
   format: (r: YearData) => string
 }
+
+/** Em R$ bilhões, sem símbolo: a unidade está no cabeçalho da coluna. */
+const bi = (valueInMillions: number) =>
+  (valueInMillions / 1000).toLocaleString('pt-BR', { maximumFractionDigits: 1 })
+
+const pct = (value: number | undefined) => (value === undefined ? '—' : formatPercent(value))
 
 const COLUMNS: Column[] = [
   { key: 'institution', label: 'Instituição', format: (r) => institutionById(r.institution).shortName },
   { key: 'year', label: 'Ano', format: (r) => String(r.year) },
-  { key: 'lucroLiquido', label: 'Lucro líquido', format: (r) => formatBRLBillions(r.lucroLiquido) },
-  { key: 'patrimonioLiquido', label: 'Patrimônio líquido', format: (r) => formatBRLBillions(r.patrimonioLiquido) },
-  { key: 'ativosTotais', label: 'Ativos totais', format: (r) => formatBRLBillions(r.ativosTotais) },
-  { key: 'carteiraCredito', label: 'Carteira de crédito', format: (r) => formatBRLBillions(r.carteiraCredito) },
-  { key: 'roe', label: 'ROE', format: (r) => formatPercent(r.roe) },
-  { key: 'roa', label: 'ROA', format: (r) => formatPercent(r.roa) },
-  { key: 'eficiencia', label: 'Eficiência', format: (r) => (r.eficiencia === undefined ? '—' : formatPercent(r.eficiencia)) },
-  { key: 'inadimplencia', label: 'Inadimplência', format: (r) => (r.inadimplencia === undefined ? '—' : formatPercent(r.inadimplencia)) },
-  { key: 'lcr', label: 'LCR', format: (r) => (r.lcr === undefined ? '—' : formatPercent(r.lcr)) },
+  { key: 'lucroLiquido', label: 'Lucro líquido', unit: 'R$ bi', format: (r) => bi(r.lucroLiquido) },
+  { key: 'patrimonioLiquido', label: 'Patrimônio líq.', unit: 'R$ bi', format: (r) => bi(r.patrimonioLiquido) },
+  { key: 'ativosTotais', label: 'Ativos totais', unit: 'R$ bi', format: (r) => bi(r.ativosTotais) },
+  { key: 'carteiraCredito', label: 'Carteira de crédito', unit: 'R$ bi', format: (r) => bi(r.carteiraCredito) },
+  { key: 'roe', label: 'ROE', unit: '%', format: (r) => pct(r.roe) },
+  { key: 'roa', label: 'ROA', unit: '%', format: (r) => pct(r.roa) },
+  { key: 'eficiencia', label: 'Eficiência', unit: '%', format: (r) => pct(r.eficiencia) },
+  { key: 'inadimplencia', label: 'Inadimplência', unit: '%', format: (r) => pct(r.inadimplencia) },
+  { key: 'lcr', label: 'LCR', unit: '%', format: (r) => pct(r.lcr) },
 ]
 
 function sortValue(r: YearData, key: SortKey): number | string {
@@ -77,31 +85,44 @@ export function TabelaDeIndicadores() {
   return (
     <>
       <PageHeader
+        eyebrow="Base completa"
         title="Tabela de Indicadores"
         subtitle="Todos os valores, por instituição e ano — clique no título de uma coluna para ordenar"
-        meta="R$ milhões, exceto percentuais"
+        meta="Valores em R$ bilhões, exceto percentuais"
       />
-      <main className="mx-auto max-w-6xl px-6 py-8 pb-20 lg:px-10 lg:pb-8">
-        <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white shadow-sm">
-          <table className="w-full min-w-[960px] border-collapse text-left text-sm">
+      <main className="mx-auto max-w-6xl px-6 py-6 pb-24 lg:px-10 lg:pb-8">
+        <div className="overflow-x-auto rounded-lg border border-rule bg-surface">
+          <table className="w-full min-w-[820px] border-collapse text-left text-sm">
             <thead>
-              <tr className="border-b border-slate-200 bg-slate-50 text-xs text-slate-500">
+              <tr className="border-b border-rule">
                 {COLUMNS.map((col) => {
                   const active = col.key === sortKey
+                  const numeric = Boolean(col.unit)
                   return (
-                    <th key={col.key} className="px-4 py-3 font-medium">
+                    <th key={col.key} className="px-3 py-3 align-bottom">
                       <button
                         onClick={() => handleSort(col.key)}
-                        className={`flex items-center gap-1 hover:text-slate-700 ${active ? 'text-slate-800' : ''}`}
+                        className={`eyebrow flex w-full items-center gap-1 whitespace-nowrap transition-colors hover:!text-ink ${
+                          numeric ? 'justify-end' : ''
+                        } ${active ? '!text-ink' : ''}`}
                       >
                         {col.label}
                         {active &&
                           (sortDir === 'asc' ? (
-                            <ChevronUpIcon className="h-3.5 w-3.5" />
+                            <ChevronUpIcon className="h-3 w-3" />
                           ) : (
-                            <ChevronDownIcon className="h-3.5 w-3.5" />
+                            <ChevronDownIcon className="h-3 w-3" />
                           ))}
                       </button>
+                      {col.unit && (
+                        <span
+                          className={`mt-0.5 block font-mono text-[10px] normal-case tracking-normal text-muted/70 ${
+                            numeric ? 'text-right' : ''
+                          }`}
+                        >
+                          {col.unit}
+                        </span>
+                      )}
                     </th>
                   )
                 })}
@@ -113,19 +134,29 @@ export function TabelaDeIndicadores() {
                 return (
                   <tr
                     key={`${r.institution}-${r.year}`}
-                    className="border-b border-slate-100 text-slate-700 last:border-0"
+                    className="border-b border-rule-soft transition-colors last:border-0 hover:bg-paper/60"
                   >
-                    {COLUMNS.map((col) => (
-                      <td key={col.key} className="px-4 py-2.5">
-                        {col.key === 'institution' && (
-                          <span
-                            className="mr-1.5 inline-block h-2 w-2 rounded-full align-middle"
-                            style={{ backgroundColor: inst.color }}
-                          />
-                        )}
-                        {col.format(r)}
-                      </td>
-                    ))}
+                    {COLUMNS.map((col) => {
+                      const isLabel = col.key === 'institution'
+                      return (
+                        <td
+                          key={col.key}
+                          className={`whitespace-nowrap px-3 py-2.5 ${
+                            isLabel
+                              ? 'font-medium text-ink'
+                              : `tnum font-mono text-[13px] text-ink/80 ${col.unit ? 'text-right' : ''}`
+                          }`}
+                        >
+                          {isLabel && (
+                            <span
+                              className="mr-2 inline-block h-2.5 w-0.5 rounded-full align-middle"
+                              style={{ backgroundColor: inst.color }}
+                            />
+                          )}
+                          {col.format(r)}
+                        </td>
+                      )
+                    })}
                   </tr>
                 )
               })}

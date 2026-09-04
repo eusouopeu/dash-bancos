@@ -1,6 +1,6 @@
 export function PendingBadge({ text = 'Dado pendente' }: { text?: string }) {
   return (
-    <span className="inline-flex items-center gap-1 rounded-full border border-dashed border-amber-300 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-amber-700 dark:border-amber-700/50 dark:bg-amber-500/10 dark:text-amber-400">
+    <span className="inline-flex items-center rounded-full border border-dashed border-ember/45 bg-ember-soft px-2.5 py-1 font-mono text-[10px] font-medium uppercase tracking-wider text-ember">
       {text}
     </span>
   )

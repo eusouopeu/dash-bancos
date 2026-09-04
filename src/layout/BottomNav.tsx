@@ -5,7 +5,7 @@ const ITEMS = SECTIONS.flatMap((section) => section.items)
 
 export function BottomNav() {
   return (
-    <nav className="fixed inset-x-0 bottom-0 z-40 flex border-t border-slate-200 bg-white lg:hidden">
+    <nav className="fixed inset-x-0 bottom-0 z-40 flex bg-ink lg:hidden">
       {ITEMS.map((item) => (
         <NavLink
           key={item.to}
@@ -14,12 +14,18 @@ export function BottomNav() {
           aria-label={item.label}
           title={item.label}
           className={({ isActive }) =>
-            `flex flex-1 flex-col items-center gap-0.5 py-2.5 text-[10px] font-medium ${
-              isActive ? 'text-emerald-700' : 'text-slate-400'
-            }`
+            `flex flex-1 flex-col items-center gap-1 py-3 ${isActive ? 'text-petrol' : 'text-white/45'}`
           }
         >
-          <item.icon className="h-5 w-5" />
+          {({ isActive }) => (
+            <>
+              <item.icon className="h-5 w-5" />
+              <span
+                className={`h-0.5 w-4 rounded-full ${isActive ? 'bg-petrol' : 'bg-transparent'}`}
+                aria-hidden
+              />
+            </>
+          )}
         </NavLink>
       ))}
     </nav>

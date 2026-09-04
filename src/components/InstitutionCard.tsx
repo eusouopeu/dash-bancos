@@ -1,14 +1,5 @@
-import type { ComponentType, SVGProps } from 'react'
-import { ShieldCheckIcon, StarIcon } from '@heroicons/react/24/solid'
-import { ArrowTrendingUpIcon } from '@heroicons/react/24/outline'
 import type { Institution, InstitutionId, YearData } from '../data'
 import { formatBRLBillions, formatPercent } from '../format'
-
-const HIGHLIGHT_ICON: Record<InstitutionId, ComponentType<SVGProps<SVGSVGElement>>> = {
-  sicoob: ArrowTrendingUpIcon,
-  bb: ArrowTrendingUpIcon,
-  itau: ShieldCheckIcon,
-}
 
 const FEATURED: InstitutionId = 'sicoob'
 
@@ -18,66 +9,61 @@ interface InstitutionCardProps {
   year: number
 }
 
-function hexToRgba(hex: string, alpha: number) {
-  const [, r, g, b] = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex) ?? []
-  if (!r) return hex
-  return `rgba(${parseInt(r, 16)}, ${parseInt(g, 16)}, ${parseInt(b, 16)}, ${alpha})`
-}
-
 export function InstitutionCard({ institution, latest, year }: InstitutionCardProps) {
-  const HighlightIcon = HIGHLIGHT_ICON[institution.id]
   const featured = institution.id === FEATURED
 
   return (
-    <div
-      className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-sm"
-      style={{ borderBottomWidth: 3, borderBottomColor: institution.color }}
-    >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-3">
-          <span
-            className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-base font-extrabold"
-            style={{ backgroundColor: hexToRgba(institution.color, 0.12), color: institution.color }}
-          >
-            {institution.initials}
-          </span>
-          <div>
-            <p className="text-sm font-bold text-slate-900">{institution.name}</p>
-            <p className="text-xs text-slate-400">{institution.category}</p>
+    <div className="relative overflow-hidden rounded-lg border border-rule bg-surface">
+      <span
+        className="absolute inset-x-0 top-0 h-[3px]"
+        style={{ backgroundColor: institution.color }}
+        aria-hidden
+      />
+      <div className="p-5 pt-6">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            {/* A cor da instituição fica na régua superior, não no rótulo: em 10px o
+                laranja não alcança contraste AA sobre branco. */}
+            <p className="eyebrow">{institution.category}</p>
+            <p className="mt-1.5 text-lg font-semibold tracking-[-0.01em] text-ink">
+              {institution.name}
+            </p>
           </div>
+          {featured && (
+            <span className="shrink-0 rounded-full bg-petrol-soft px-2 py-1 font-mono text-[10px] font-medium uppercase tracking-wider text-petrol">
+              Destaque
+            </span>
+          )}
         </div>
-        {featured && (
-          <span className="flex shrink-0 items-center gap-1 rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-600">
-            <StarIcon className="h-3.5 w-3.5" />
-            Destaque
-          </span>
+
+        {latest ? (
+          <>
+            <div className="mt-5">
+              <p className="tnum font-mono text-[26px] font-semibold leading-none tracking-[-0.02em] text-ink">
+                {formatBRLBillions(latest.ativosTotais)}
+              </p>
+              <p className="eyebrow mt-2">Ativos totais</p>
+            </div>
+
+            <dl className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-md bg-rule-soft">
+              {[
+                { label: 'ROE', value: latest.roe },
+                { label: 'ROA', value: latest.roa },
+              ].map((m) => (
+                <div key={m.label} className="bg-surface px-3 py-2.5">
+                  <dt className="eyebrow">{m.label}</dt>
+                  <dd className="tnum mt-1 font-mono text-[17px] font-semibold text-ink">
+                    {formatPercent(m.value)}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          </>
+        ) : (
+          <p className="mt-5 border-t border-rule-soft pt-4 text-xs leading-relaxed text-muted">
+            Sem dado de fechamento auditado para {year} — ver metodologia.
+          </p>
         )}
-      </div>
-
-      {latest ? (
-        <div className="grid grid-cols-3 gap-2">
-          <div>
-            <p className="text-base font-extrabold text-slate-900">{formatBRLBillions(latest.ativosTotais)}</p>
-            <p className="text-[11px] text-slate-400">Ativos Totais</p>
-          </div>
-          <div>
-            <p className="text-base font-extrabold text-slate-900">{formatPercent(latest.roe)}</p>
-            <p className="text-[11px] text-slate-400">ROE</p>
-          </div>
-          <div>
-            <p className="text-base font-extrabold text-slate-900">{formatPercent(latest.roa)}</p>
-            <p className="text-[11px] text-slate-400">ROA</p>
-          </div>
-        </div>
-      ) : (
-        <p className="text-xs text-slate-400">
-          Sem dado confiável de fechamento para {year} — ver metodologia.
-        </p>
-      )}
-
-      <div className="flex items-start gap-2 border-t border-slate-100 pt-3 text-xs leading-relaxed text-slate-500">
-        <HighlightIcon className="mt-0.5 h-4 w-4 shrink-0" style={{ color: institution.color }} />
-        <span>{institution.highlight}</span>
       </div>
     </div>
   )

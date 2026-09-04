@@ -28,7 +28,7 @@ export interface Institution {
   name: string
   shortName: string
   category: string
-  /** Cor oficial de marca da instituição. */
+  /** Cor da instituição na identidade visual do dashboard (não é a cor de marca oficial). */
   color: string
   /** Iniciais/monograma para o badge do card, quando não há logo. */
   initials: string
@@ -42,7 +42,7 @@ export const INSTITUTIONS: Institution[] = [
     name: 'Sicoob',
     shortName: 'Sicoob',
     category: 'Cooperativa de crédito',
-    color: '#00AE9D',
+    color: '#087F8C',
     initials: 'S',
     highlight: 'Maior presença nacional entre as instituições financeiras. Atuação forte em municípios de menor porte.',
   },
@@ -51,7 +51,7 @@ export const INSTITUTIONS: Institution[] = [
     name: 'Banco do Brasil',
     shortName: 'BB',
     category: 'Sociedade de economia mista',
-    color: '#465EFF',
+    color: '#171717',
     initials: 'BB',
     highlight: 'Líder em volume de ativos e maior banco em financiamento ao agronegócio.',
   },
@@ -60,7 +60,7 @@ export const INSTITUTIONS: Institution[] = [
     name: 'Itaú Unibanco',
     shortName: 'Itaú',
     category: 'Banco privado nacional',
-    color: '#EC7000',
+    color: '#E76F32',
     initials: 'i',
     highlight: 'Destaque em eficiência operacional e rentabilidade consistente nos últimos anos.',
   },
@@ -93,34 +93,22 @@ export interface RawYearData {
 
 export const RAW_DATA_INPUT: RawYearData[] = [
   // --- Sicoob ---
-  // 2020: sobras líquidas confirmadas por release; PL/ativos/carteira derivados por cálculo
-  // reverso a partir dos percentuais de crescimento informados no release de 2021 (não há
-  // valor absoluto de fechamento de dez/2020 publicado diretamente) — ver METHODOLOGY_NOTES.
-  // eficiência e inadimplência do sistema combinado não encontradas para este ano.
+  // 2022-2024: série do sistema combinado ("Demonstrações Financeiras Combinadas – Sicoob"),
+  // conforme tabulada no Relatório de Crédito da Moody's Local — ver METHODOLOGY_NOTES.
   {
     institution: 'sicoob',
-    year: 2020,
-    lucroLiquido: 3_600,
-    patrimonioLiquido: 26_000,
-    ativosTotais: 157_600,
-    carteiraCredito: 88_700,
+    year: 2022,
+    lucroLiquido: 7_200,
+    patrimonioLiquido: 38_000,
+    ativosTotais: 237_700,
+    carteiraCredito: 147_500,
+    inadimplencia: 0.047,
   },
-  {
-    institution: 'sicoob',
-    year: 2021,
-    lucroLiquido: 5_500,
-    patrimonioLiquido: 30_200,
-    ativosTotais: 190_400,
-    carteiraCredito: 120_200,
-  },
-  // 2022 não incluído: sobras líquidas, patrimônio líquido e carteira de crédito do sistema
-  // combinado não têm valor absoluto confiável em fonte primária (ver METHODOLOGY_NOTES) —
-  // preferimos a lacuna a um número não verificado.
   {
     institution: 'sicoob',
     year: 2023,
     lucroLiquido: 8_300,
-    patrimonioLiquido: 46_000,
+    patrimonioLiquido: 46_100,
     ativosTotais: 298_400,
     carteiraCredito: 168_200,
     eficiencia: 0.271,
@@ -130,35 +118,23 @@ export const RAW_DATA_INPUT: RawYearData[] = [
     institution: 'sicoob',
     year: 2024,
     lucroLiquido: 8_300,
-    patrimonioLiquido: 54_400,
+    patrimonioLiquido: 54_500,
     ativosTotais: 359_700,
     carteiraCredito: 194_000,
     eficiencia: 0.271,
     inadimplencia: 0.072,
   },
+  // 2025: carteira de crédito é a "carteira ampliada líquida" (base mais ampla que a dos anos
+  // anteriores, que usam a carteira de crédito "cheia") — ver METHODOLOGY_NOTES.
+  {
+    institution: 'sicoob',
+    year: 2025,
+    lucroLiquido: 11_200,
+    patrimonioLiquido: 62_800,
+    ativosTotais: 430_100,
+    carteiraCredito: 256_000,
+  },
   // --- Banco do Brasil ---
-  {
-    institution: 'bb',
-    year: 2020,
-    lucroLiquido: 13_884,
-    patrimonioLiquido: 126_971,
-    ativosTotais: 1_725_000,
-    carteiraCredito: 742_600,
-    eficiencia: 0.366,
-    inadimplencia: 0.019,
-    lcr: 3.1446,
-  },
-  {
-    institution: 'bb',
-    year: 2021,
-    lucroLiquido: 21_021,
-    patrimonioLiquido: 144_857,
-    ativosTotais: 1_932_533,
-    carteiraCredito: 874_900,
-    eficiencia: 0.356,
-    inadimplencia: 0.0175,
-    lcr: 2.2894,
-  },
   {
     institution: 'bb',
     year: 2022,
@@ -192,32 +168,22 @@ export const RAW_DATA_INPUT: RawYearData[] = [
     inadimplencia: 0.0332,
     lcr: 1.5219,
   },
+  // 2025: ano marcado por uma crise de inadimplência no agronegócio — inadimplência >90 dias
+  // inclui o impacto de um caso pontual na carteira de TVM de uma empresa do atacado (R$3,6 bi);
+  // ex-esse evento, o índice seria 4,88% — ver METHODOLOGY_NOTES.
+  {
+    institution: 'bb',
+    year: 2025,
+    lucroLiquido: 20_700,
+    patrimonioLiquido: 187_902,
+    ativosTotais: 2_451_621,
+    carteiraCredito: 1_229_907,
+    eficiencia: 0.277,
+    inadimplencia: 0.0517,
+  },
   // --- Itaú Unibanco ---
-  // 2020-2022: patrimônio líquido e ativos totais em base IFRS (Form 20-F/SEC) — 2023-2024
-  // usam a base "gerencial" divulgada em português (ver METHODOLOGY_NOTES: há uma quebra de
-  // base contábil entre 2022 e 2023 nessas duas linhas, não um salto puramente orgânico).
-  {
-    institution: 'itau',
-    year: 2020,
-    lucroLiquido: 18_500,
-    patrimonioLiquido: 154_525,
-    ativosTotais: 2_019_251,
-    carteiraCredito: 869_500,
-    eficiencia: 0.459,
-    inadimplencia: 0.031,
-    lcr: 1.946,
-  },
-  {
-    institution: 'itau',
-    year: 2021,
-    lucroLiquido: 26_900,
-    patrimonioLiquido: 164_476,
-    ativosTotais: 2_069_206,
-    carteiraCredito: 1_027_200,
-    eficiencia: 0.45,
-    inadimplencia: 0.025,
-    lcr: 1.591,
-  },
+  // 2022-2025: patrimônio líquido e ativos totais na base "gerencial" divulgada em português
+  // (ver METHODOLOGY_NOTES sobre a quebra de base contábil).
   {
     institution: 'itau',
     year: 2022,
@@ -251,6 +217,16 @@ export const RAW_DATA_INPUT: RawYearData[] = [
     inadimplencia: 0.024,
     lcr: 2.213,
   },
+  {
+    institution: 'itau',
+    year: 2025,
+    lucroLiquido: 46_800,
+    patrimonioLiquido: 196_146,
+    ativosTotais: 3_096_277,
+    carteiraCredito: 1_490_000,
+    eficiencia: 0.389,
+    inadimplencia: 0.019,
+  },
 ]
 
 export interface YearData extends RawYearData {
@@ -266,7 +242,7 @@ export const RAW_DATA: YearData[] = RAW_DATA_INPUT.map((d) => ({
   roa: d.lucroLiquido / d.ativosTotais,
 }))
 
-export const YEARS = [2020, 2021, 2022, 2023, 2024] as const
+export const YEARS = [2022, 2023, 2024, 2025] as const
 
 export function dataFor(institution: InstitutionId, year: number): YearData {
   const found = RAW_DATA.find((d) => d.institution === institution && d.year === year)
@@ -498,32 +474,37 @@ export const METHODOLOGY_NOTES: MethodologyNote[] = [
   {
     institution: 'sicoob',
     note:
-      'Patrimônio líquido, ativos totais e carteira de crédito de 2020 não têm valor de fechamento publicado diretamente — foram calculados a partir do percentual de crescimento informado no release de fechamento de 2021 (ex.: ativos de 2021 ÷ crescimento de 20,8% informado). Tratar como estimativa, não como número oficial de balanço.',
+      'Sobras líquidas, patrimônio líquido, ativos totais e carteira de crédito de 2022–2024 vêm da série histórica do sistema combinado ("Demonstrações Financeiras Combinadas – Sicoob") tabulada no Relatório de Crédito da Moody\'s Local de julho/2025 — a mesma base de consolidação (banco cooperativo + centrais + singulares) usada nas demais métricas do Sicoob aqui. O índice de eficiência do sistema combinado não foi divulgado para 2022.',
   },
   {
     institution: 'sicoob',
     note:
-      '2022 não está incluído na série: não encontramos, em fonte primária confiável, o valor de fechamento de sobras líquidas, patrimônio líquido ou carteira de crédito do sistema combinado para esse ano — só estimativas divergentes entre si. Preferimos deixar a lacuna a publicar um número não verificado.',
-  },
-  {
-    institution: 'sicoob',
-    note:
-      'Índice de eficiência e inadimplência do sistema combinado nacional não encontrados para 2020 e 2021 em fonte primária confiável — por isso essas células aparecem vazias nesses anos, mesmo havendo dado de lucro/patrimônio/ativos.',
+      'Carteira de crédito de 2025 é a "carteira ampliada líquida" (R$ 256 bi, divulgação institucional de abril/2026) — uma base mais ampla do que a "carteira de crédito" cheia usada em 2023 e 2024, o que explica parte do salto entre os dois anos. Índice de eficiência e inadimplência do sistema combinado não encontrados para 2025 em fonte primária confiável até o levantamento destes dados.',
   },
   {
     institution: 'itau',
     note:
-      'Patrimônio líquido e ativos totais de 2020–2022 vêm do Form 20-F (SEC), em base contábil IFRS — já os de 2023–2024 vêm dos releases em português, em base "gerencial" (a mesma usada nas demais métricas do Itaú aqui). As duas bases não são diretamente comparáveis linha a linha; o salto entre 2022 e 2023 nessas duas métricas reflete em parte essa mudança de base, não apenas crescimento orgânico.',
+      'Patrimônio líquido e ativos totais de 2022–2025 vêm das demonstrações contábeis em base "gerencial"/IFRS consolidada, divulgadas em português (mesma base das demais métricas do Itaú aqui).',
   },
   {
     institution: 'itau',
     note:
-      'LCR é a média do trimestre encerrado em 31 de dezembro de cada ano (metodologia do próprio banco), não um valor pontual de fechamento — 2020 e 2021 vêm do Form 20-F FY2021, 2022 do Form 20-F FY2022, 2023 do Form 20-F FY2023, e 2024 do Relatório Pilar 3 (Gerenciamento de Riscos e Capital) 4T25, que traz a série histórica.',
+      'LCR é a média do trimestre encerrado em 31 de dezembro de cada ano (metodologia do próprio banco) — 2022 vem do Form 20-F FY2022, 2023 do Form 20-F FY2023, e 2024 do Relatório Pilar 3 (Gerenciamento de Riscos e Capital) 4T25, que traz a série histórica. Não encontramos o valor de 2025 em fonte primária até o levantamento destes dados.',
   },
   {
     institution: 'bb',
     note:
-      'LCR de 2020–2022 vem da API de dados abertos do próprio BB (relatório "liq1", registrado no catálogo do Bacen), com o valor médio do trimestre já calculado pelo banco em seu comentário oficial; 2023–2024 vêm do Relatório Pilar 3 (Gerenciamento de Riscos e Capital) de cada ano.',
+      'LCR de 2022 vem da API de dados abertos do próprio BB (relatório "liq1", registrado no catálogo do Bacen), com o valor médio do trimestre já calculado pelo banco em seu comentário oficial; 2023–2024 vêm do Relatório Pilar 3 (Gerenciamento de Riscos e Capital) de cada ano. Não encontramos o valor de 2025 em fonte primária até o levantamento destes dados.',
+  },
+  {
+    institution: 'bb',
+    note:
+      'A inadimplência acima de 90 dias de 2025 (5,17%) inclui o impacto de um caso pontual na carteira de títulos e valores mobiliários (TVM) de uma empresa do segmento de atacado, no valor de R$ 3,6 bi — desconsiderando esse evento, o índice teria ficado em 4,88%, segundo o próprio banco.',
+  },
+  {
+    institution: 'itau',
+    note:
+      'Carteira de crédito de 2025 (R$ 1,49 tri) é a "carteira de crédito ampliada" divulgada no release de resultados do 4T25 — mesma base conceitual usada nos demais anos da série do Itaú aqui.',
   },
 ]
 
@@ -565,29 +546,9 @@ export const SOURCES: SourceEntry[] = [
     url: 'https://cooperativismodecredito.coop.br/2025/04/sicoob-gera-r-3996-bilhoes-em-beneficios-economicos-em-2024/',
   },
   {
-    institution: 'sicoob',
-    label: 'Release de fechamento de 2021 do Sicoob (compara 2020 e 2021 lado a lado)',
-    url: 'https://www.sicoob.com.br/web/sicoob/noticias/-/asset_publisher/xAioIawpOI5S/content/id/103431191',
-  },
-  {
-    institution: 'bb',
-    label: 'Análise do Desempenho 4T21 (Banco do Brasil) — dados de 2020 e 2021',
-    url: 'https://api.mziq.com/mzfilemanager/v2/d/5760dff3-15e1-4962-9e81-322a0b3d0bbd/6fd22a00-079a-e89e-7fdb-b4a1c0327884?origin=1',
-  },
-  {
     institution: 'bb',
     label: 'Análise do Desempenho 4T23 (Banco do Brasil) — dados de 2022 e 2023',
     url: 'https://api.mziq.com/mzfilemanager/v2/d/5760dff3-15e1-4962-9e81-322a0b3d0bbd/8bff3233-96f7-c182-e4e0-62ed3273412e?origin=1',
-  },
-  {
-    institution: 'bb',
-    label: 'API de Dados Abertos do BB — Relatório LIQ1 (LCR), 2020',
-    url: 'https://api.externo.bb.com.br/dadosabertos/v1/relatorios/liq1/2020-4',
-  },
-  {
-    institution: 'bb',
-    label: 'API de Dados Abertos do BB — Relatório LIQ1 (LCR), 2021',
-    url: 'https://api.externo.bb.com.br/dadosabertos/v1/relatorios/liq1/2021-4',
   },
   {
     institution: 'bb',
@@ -651,11 +612,6 @@ export const SOURCES: SourceEntry[] = [
   },
   {
     institution: 'itau',
-    label: 'Form 20-F FY2021 (Itaú Unibanco, SEC) — dados IFRS de 2020 e 2021, LCR',
-    url: 'https://www.sec.gov/Archives/edgar/data/1132597/000119312522127927/d311755d20f.htm',
-  },
-  {
-    institution: 'itau',
     label: 'Form 20-F FY2022 (Itaú Unibanco, SEC) — dados IFRS de 2021 e 2022, LCR',
     url: 'https://www.sec.gov/Archives/edgar/data/1132597/000129281423001950/itubform20f_2022.htm',
   },
@@ -666,11 +622,6 @@ export const SOURCES: SourceEntry[] = [
   },
   {
     institution: 'itau',
-    label: 'Release de resultados 4T21 (SEC 6-K) — lucro, eficiência e inadimplência de 2020/2021',
-    url: 'https://www.sec.gov/Archives/edgar/data/1132597/000119312522036756/d333821dex991.htm',
-  },
-  {
-    institution: 'itau',
     label: 'Release de resultados 4T22 (SEC 6-K) — lucro, eficiência e inadimplência de 2022',
     url: 'https://sec.gov/Archives/edgar/data/1132597/000129281423000330/ex99-2.htm',
   },
@@ -678,6 +629,36 @@ export const SOURCES: SourceEntry[] = [
     institution: 'itau',
     label: 'Relatório de Gerenciamento de Riscos e Capital — Pilar 3, 4T2025 (LCR de 2024)',
     url: 'https://filemanager-cdn.mziq.com/published/42787847-4cf6-4461-94a5-40ed237dca33/970c7455-195a-439f-aa33-e08321f5d8c1_gerenciamento_de_riscos_e_capital_pilar_3_4t25.pdf',
+  },
+  {
+    institution: 'itau',
+    label: 'Itaú Unibanco Holding S.A. — Demonstrações Contábeis Completas, 31/12/2025 (balanço, DRE consolidados)',
+    url: 'https://www.itau.com.br/relacoes-com-investidores',
+  },
+  {
+    institution: 'itau',
+    label: 'Itaú (ITUB4) lucra R$ 12,3 bi no 4T25; no ano, lucro recorrente foi de R$ 46,8 bi — ROE, eficiência, inadimplência e carteira ampliada (InfoMoney)',
+    url: 'https://www.infomoney.com.br/mercados/itau-itub4-resultados-quarto-trimestre-2025/',
+  },
+  {
+    institution: 'bb',
+    label: 'Banco do Brasil (BBAS3) — Demonstrações Contábeis Completas, 31/12/2025 (balanço, DRE consolidados)',
+    url: 'https://ri.bb.com.br/',
+  },
+  {
+    institution: 'bb',
+    label: 'Banco do Brasil (BBAS3): lucro ajustado de R$ 5,7 bi no 4T25, R$ 20,7 bi no ano, ROE, eficiência e inadimplência (Seu Dinheiro)',
+    url: 'https://www.seudinheiro.com/2026/empresas/balanco-banco-do-brasil-bb-bbas3-4t25-2025-lucro-rentabilidade-roe-inadimplencia-miql/',
+  },
+  {
+    institution: 'sicoob',
+    label: 'Sistema Cooperativo Sicoob atinge R$ 92,8 bi em carteira agro e R$ 430,1 bi em ativos totais em 2025 (carteira ampliada, patrimônio líquido)',
+    url: 'https://mundocoop.com.br/economia-negocios/sistema-cooperativa-sicoob-atinge-r-928-bilhoes-em-carteira-agro-e-r-430-bilhoes-em-ativos-totais-em-2025/',
+  },
+  {
+    institution: 'sicoob',
+    label: 'Sicoob alcança resultado recorde de R$ 11,2 bilhões em 2025 (sobras líquidas)',
+    url: 'https://www.juventudebm.com/2026/04/sicoob-alcanca-resultado-recorde-de-r.html',
   },
 ]
 

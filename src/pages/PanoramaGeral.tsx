@@ -1,13 +1,17 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { ArrowDownTrayIcon } from '@heroicons/react/24/outline'
 import { InstitutionCard } from '../components/InstitutionCard'
 import {
   EficienciaLineChart,
+  InadimplenciaLineChart,
   LCRLineChart,
   LucroLiquidoLineChart,
-  ROALineChart,
+  ROELineChart,
+  SeriesLegend,
+  coverageGaps,
   hasLcrData,
 } from '../components/ChartSection'
+import { IndicatorComparison, type ComparisonRow } from '../components/IndicatorComparison'
 import { PresenceHighlights } from '../components/PresenceHighlights'
 import { AgenciasComparisonChart } from '../components/AgenciasComparisonChart'
 import { BrazilPresenceMap } from '../components/BrazilPresenceMap'
@@ -21,9 +25,61 @@ import {
   institutionById,
   tryDataFor,
 } from '../data'
-import { formatNumber, formatPercent } from '../format'
+import { formatNumber } from '../format'
 import { PageHeader } from '../layout/PageHeader'
 import { PendingBadge } from '../components/PendingBadge'
+
+const COMPARISON_ROWS: ComparisonRow[] = [
+  { label: 'ROE — retorno sobre patrimônio líquido', key: 'roe', better: 'max' },
+  { label: 'ROA — retorno sobre ativos', key: 'roa', better: 'max' },
+  { label: 'Índice de eficiência', key: 'eficiencia', better: 'min' },
+  {
+    label: 'Inadimplência acima de 90 dias',
+    key: 'inadimplencia',
+    better: 'min',
+    hint: 'O índice do Sicoob usa o critério de ativos problemáticos (E–H), mais amplo que o de BB e Itaú — os valores não são comparáveis 1:1.',
+  },
+]
+
+function Panel({
+  title,
+  note,
+  children,
+  className = '',
+  action,
+}: {
+  title: string
+  note?: string
+  children: ReactNode
+  className?: string
+  action?: ReactNode
+}) {
+  return (
+    <section className={`rounded-lg border border-rule bg-surface p-5 ${className}`}>
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-ink">{title}</h2>
+          {note && <p className="mt-1 text-[11px] leading-relaxed text-muted">{note}</p>}
+        </div>
+        {action && <div className="shrink-0">{action}</div>}
+      </div>
+      {children}
+    </section>
+  )
+}
+
+function ChartPanel({ title, unit, children }: { title: string; unit: string; children: ReactNode }) {
+  return (
+    <section className="rounded-lg border border-rule bg-surface p-5">
+      <div className="mb-3 flex items-start justify-between gap-3">
+        <h2 className="text-[13px] font-semibold tracking-[-0.01em] text-ink">{title}</h2>
+        <span className="eyebrow shrink-0">{unit}</span>
+      </div>
+      <SeriesLegend />
+      {children}
+    </section>
+  )
+}
 
 export function PanoramaGeral() {
   const [year, setYear] = useState<number>(YEARS[YEARS.length - 1])
@@ -41,19 +97,25 @@ export function PanoramaGeral() {
   const snapshot = NETWORK_SNAPSHOTS.find((n) => n.institution === mapInstitution)!
   const dataByUF = Object.fromEntries(snapshot.porUF.map((u) => [u.uf, u.count]))
   const showLcr = hasLcrData()
+  const lcrGaps = coverageGaps('lcr')
+  const latestYear = YEARS[YEARS.length - 1]
 
   return (
     <>
       <PageHeader
+        eyebrow={`Exercício ${year}`}
         title="Comparativo de Indicadores Financeiros"
-        subtitle="Sicoob vs. Banco do Brasil vs. Itaú Unibanco"
-        meta={`Dados de ${year} · Fontes: demonstrações financeiras e Relações com Investidores de cada instituição`}
+        subtitle="Sicoob, Banco do Brasil e Itaú Unibanco — três modelos de propriedade, os mesmos indicadores"
         actions={
           <>
+            <label className="sr-only" htmlFor="ano">
+              Exercício
+            </label>
             <select
+              id="ano"
               value={year}
               onChange={(e) => setYear(Number(e.target.value))}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm"
+              className="tnum rounded-md border border-rule bg-surface px-3 py-2 font-mono text-sm font-medium text-ink"
             >
               {YEARS.map((y) => (
                 <option key={y} value={y}>
@@ -61,16 +123,9 @@ export function PanoramaGeral() {
                 </option>
               ))}
             </select>
-            <select
-              disabled
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-400 shadow-sm"
-              title="Somente granularidade anual disponível nos dados atuais"
-            >
-              <option>Anual</option>
-            </select>
             <button
               onClick={() => window.print()}
-              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
+              className="flex items-center gap-2 rounded-md bg-petrol px-3.5 py-2 text-sm font-semibold text-white transition-colors hover:bg-[#066b76]"
             >
               Exportar
               <ArrowDownTrayIcon className="h-4 w-4" />
@@ -79,140 +134,115 @@ export function PanoramaGeral() {
         }
       />
 
-      <main className="space-y-6 px-6 py-6 pb-20 lg:px-10 lg:pb-6">
+      <main className="space-y-5 px-6 py-6 pb-24 lg:px-10 lg:pb-8">
         <section className="grid grid-cols-1 gap-4 sm:grid-cols-3">
           {INSTITUTIONS.map((inst) => (
-            <InstitutionCard key={inst.id} institution={inst} latest={tryDataFor(inst.id, year)} year={year} />
+            <InstitutionCard
+              key={inst.id}
+              institution={inst}
+              latest={tryDataFor(inst.id, year)}
+              year={year}
+            />
           ))}
         </section>
 
-        <section className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-slate-700">Rede de Atendimento — Sicoob</h2>
-            <p className="mb-3 text-xs text-slate-400">
-              Único dos três com número de municípios atendidos e cooperados divulgado.
-            </p>
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
+          <Panel
+            title={`Como as três se comparam em ${year}`}
+            note="Barra cheia = melhor desempenho no indicador."
+            className="lg:col-span-2"
+          >
+            <IndicatorComparison rows={COMPARISON_ROWS} data={rows} />
+          </Panel>
+
+          <Panel
+            title="Rede de atendimento — Sicoob"
+            note="Único dos três que divulga municípios atendidos e número de cooperados."
+            className="self-start"
+          >
             <PresenceHighlights items={sicoobHighlights} />
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <div className="mb-1 flex items-center justify-between gap-2">
-              <h2 className="text-sm font-semibold text-slate-700">Mapa de Presença por Agências</h2>
-              <div className="flex overflow-hidden rounded-lg border border-slate-200 text-[11px] font-semibold">
+          </Panel>
+        </div>
+
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          <Panel
+            title="Mapa de presença por agências"
+            note={`${formatNumber(snapshot.agencias)} agências em ${formatNumber(snapshot.municipios)} municípios · ${snapshot.asOf}, ESTBAN/Bacen.`}
+            action={
+              <div className="flex overflow-hidden rounded-md border border-rule">
                 {(['bb', 'itau'] as const).map((id) => (
                   <button
                     key={id}
                     onClick={() => setMapInstitution(id)}
-                    className="px-2 py-1"
+                    aria-pressed={mapInstitution === id}
+                    className="px-2.5 py-1 font-mono text-[11px] font-medium transition-colors"
                     style={
                       mapInstitution === id
                         ? { backgroundColor: institutionById(id).color, color: '#fff' }
-                        : { color: '#64748b' }
+                        : { color: '#737373' }
                     }
                   >
                     {institutionById(id).shortName}
                   </button>
                 ))}
               </div>
-            </div>
-            <p className="mb-1 text-xs text-slate-400">
-              {formatNumber(snapshot.agencias)} agências em {formatNumber(snapshot.municipios)} municípios (
-              {snapshot.asOf}, ESTBAN/Bacen).
-            </p>
-            <BrazilPresenceMap dataByUF={dataByUF} color={institutionById(mapInstitution).color} />
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-slate-700">Agências / Pontos de Atendimento</h2>
-            <p className="mb-1 text-xs text-slate-400">
-              Datas-base e fontes diferem entre instituições — ver notas abaixo do gráfico.
-            </p>
-            <AgenciasComparisonChart data={AGENCIAS_DATA} />
-          </div>
-        </section>
-
-        <section className="grid grid-cols-1 gap-4 lg:grid-cols-4">
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-slate-700">Evolução do Lucro Líquido (R$ bilhões)</h2>
-            <LucroLiquidoLineChart />
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-slate-700">Índice de Eficiência</h2>
-            <EficienciaLineChart />
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-slate-700">ROA</h2>
-            <ROALineChart />
-          </div>
-          <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-            <h2 className="text-sm font-semibold text-slate-700">LCR</h2>
-            {showLcr ? (
-              <LCRLineChart />
-            ) : (
-              <div className="flex h-[240px] flex-col items-center justify-center gap-2 text-center">
-                <PendingBadge text="Aguardando dados públicos" />
-                <p className="max-w-[200px] text-xs text-slate-400">
-                  Índice de Liquidez de Curto Prazo — a incluir assim que localizado com fonte confiável.
-                </p>
-              </div>
-            )}
-          </div>
-        </section>
-
-        <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-          <h2 className="mb-3 text-sm font-semibold text-slate-700">Indicadores Selecionados — {year}</h2>
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[480px] border-collapse text-left text-sm">
-              <thead>
-                <tr className="border-b border-slate-200 text-xs text-slate-500">
-                  <th className="py-2 pr-4 font-medium">Indicador</th>
-                  {INSTITUTIONS.map((inst) => (
-                    <th key={inst.id} className="py-2 pr-4 font-medium" style={{ color: inst.color }}>
-                      {inst.shortName}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  { label: 'ROE (%)', key: 'roe' as const },
-                  { label: 'ROA (%)', key: 'roa' as const },
-                  { label: 'Índice de Eficiência (%)', key: 'eficiencia' as const },
-                  { label: 'Inadimplência > 90 dias (%)', key: 'inadimplencia' as const },
-                ].map((row) => (
-                  <tr key={row.key} className="border-b border-slate-100 text-slate-700 last:border-0">
-                    <td className="py-2 pr-4 text-slate-500">{row.label}</td>
-                    {INSTITUTIONS.map((inst) => {
-                      const d = rows.find((r) => r.institution === inst.id)
-                      const value = d?.[row.key]
-                      return (
-                        <td key={inst.id} className="py-2 pr-4 font-semibold">
-                          {value === undefined ? '—' : formatPercent(value)}
-                        </td>
-                      )
-                    })}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        <footer className="pb-8 pt-2 text-center text-xs text-slate-400">
-          Os dados apresentados são referentes às demonstrações financeiras de {year} das
-          instituições. Mapa de agências: ESTBAN (Bacen), jan/2026 — ver{' '}
-          <a href="#/fontes-de-dados" className="underline">
-            fontes de dados
-          </a>
-          . Contorno cartográfico:{' '}
-          <a
-            href="https://github.com/VictorCazanave/svg-maps/tree/master/packages/brazil"
-            target="_blank"
-            rel="noreferrer"
-            className="underline"
+            }
           >
-            @svg-maps/brazil
-          </a>{' '}
-          (CC-BY 4.0, MapSVG).
-        </footer>
+            <BrazilPresenceMap
+              dataByUF={dataByUF}
+              color={institutionById(mapInstitution).color}
+            />
+          </Panel>
+
+          <Panel
+            title="Agências e pontos de atendimento"
+            note="As datas-base diferem entre instituições — ver notas abaixo."
+          >
+            <AgenciasComparisonChart data={AGENCIAS_DATA} />
+          </Panel>
+        </div>
+
+        <div>
+          <p className="eyebrow mb-3">Séries históricas · {YEARS[0]}–{YEARS[YEARS.length - 1]}</p>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            <ChartPanel title="Lucro líquido" unit="R$ bilhões">
+              <LucroLiquidoLineChart />
+            </ChartPanel>
+            <ChartPanel title="ROE" unit="% ao ano">
+              <ROELineChart />
+            </ChartPanel>
+            <ChartPanel title="Índice de eficiência" unit="% — menor é melhor">
+              <EficienciaLineChart />
+            </ChartPanel>
+            <ChartPanel title="Inadimplência > 90 dias" unit="% da carteira">
+              <InadimplenciaLineChart />
+            </ChartPanel>
+            <ChartPanel title="LCR" unit="% — liquidez de curto prazo">
+              {showLcr ? (
+                <>
+                  <LCRLineChart />
+                  <p className="mt-2.5 text-[11px] leading-relaxed text-muted">
+                    {lcrGaps.never.length > 0 && (
+                      <>O {lcrGaps.never.join(' e o ')} não divulga LCR. </>
+                    )}
+                    {lcrGaps.latestOnly.length > 0 && (
+                      <>
+                        {lcrGaps.latestOnly.join(' e ')} ainda não publicaram o de {latestYear}.
+                      </>
+                    )}
+                  </p>
+                </>
+              ) : (
+                <div className="flex h-[210px] flex-col items-center justify-center gap-2.5 text-center">
+                  <PendingBadge text="Aguardando dados" />
+                  <p className="max-w-[220px] text-[11px] leading-relaxed text-muted">
+                    A incluir assim que localizado em fonte primária.
+                  </p>
+                </div>
+              )}
+            </ChartPanel>
+          </div>
+        </div>
       </main>
     </>
   )

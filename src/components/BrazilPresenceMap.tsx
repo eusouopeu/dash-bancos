@@ -15,14 +15,17 @@ function hexToRgb(hex: string) {
 
 /** Interpola entre branco e a cor da instituição conforme a intensidade (0–1, escala raiz para destacar diferenças menores). */
 function colorFor(value: number, max: number, color: string) {
-  if (max <= 0) return '#f1f5f9'
-  const t = Math.sqrt(value / max)
+  if (max <= 0) return '#eae7e0'
+  // Teto de 0,82: o estado mais denso não chega à cor pura, senão a rampa do BB (tinta)
+  // fecha em preto e o mapa vira um borrão.
+  const t = Math.sqrt(value / max) * 0.82
   const [r, g, b] = hexToRgb(color)
-  const mix = (channel: number) => Math.round(255 + (channel - 255) * t)
-  return `rgb(${mix(r)}, ${mix(g)}, ${mix(b)})`
+  // Interpola a partir do papel, não do branco — o mapa fica assentado no fundo.
+  const mix = (channel: number, base: number) => Math.round(base + (channel - base) * t)
+  return `rgb(${mix(r, 245)}, ${mix(g, 243)}, ${mix(b, 238)})`
 }
 
-export function BrazilPresenceMap({ dataByUF, color, noDataColor = '#f1f5f9' }: BrazilPresenceMapProps) {
+export function BrazilPresenceMap({ dataByUF, color, noDataColor = '#eae7e0' }: BrazilPresenceMapProps) {
   const [hovered, setHovered] = useState<{ name: string; value: number | undefined } | null>(null)
   const max = useMemo(() => Math.max(0, ...Object.values(dataByUF)), [dataByUF])
 
@@ -37,7 +40,7 @@ export function BrazilPresenceMap({ dataByUF, color, noDataColor = '#f1f5f9' }: 
               key={loc.id}
               d={loc.path}
               fill={fill}
-              stroke="#fff"
+              stroke="#fdfcfa"
               strokeWidth={1}
               onMouseEnter={() => setHovered({ name: loc.name, value })}
               onMouseLeave={() => setHovered(null)}
@@ -53,15 +56,15 @@ export function BrazilPresenceMap({ dataByUF, color, noDataColor = '#f1f5f9' }: 
       </svg>
 
       {hovered && (
-        <div className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 whitespace-nowrap rounded-md bg-slate-900 px-2 py-1 text-[11px] font-medium text-white shadow-lg">
+        <div className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 whitespace-nowrap rounded-md bg-ink px-2.5 py-1 font-mono text-[11px] text-paper">
           {hovered.name}
           {hovered.value !== undefined ? `: ${formatNumber(hovered.value)} agências` : ': sem dado'}
         </div>
       )}
 
-      <div className="mt-2 flex items-center justify-center gap-1.5 text-[10px] text-slate-400">
+      <div className="mt-3 flex items-center justify-center gap-2 font-mono text-[10px] text-muted">
         <span>menos</span>
-        <span className="flex h-2.5 w-16 overflow-hidden rounded-full">
+        <span className="flex h-2 w-16 overflow-hidden rounded-sm">
           {[0.15, 0.35, 0.55, 0.75, 1].map((t) => (
             <span key={t} className="flex-1" style={{ backgroundColor: colorFor(t * max, max, color) }} />
           ))}
