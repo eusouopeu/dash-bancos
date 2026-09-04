@@ -1,19 +1,21 @@
-# Dashboard financeiro — Ambev S.A.
+# Dashboard financeiro — Sicoob, Banco do Brasil e Itaú Unibanco
 
-Análise de liquidez, atividade e lucratividade da Ambev S.A. (2020–2024), com
-dados públicos das Demonstrações Financeiras Padronizadas (DFP) enviadas à
-CVM. React + TypeScript + Tailwind CSS, gráficos com Recharts, ícones
+Comparação de indicadores financeiros (rentabilidade, solidez de capital,
+eficiência e inadimplência) entre três modelos de propriedade do setor
+bancário brasileiro: uma cooperativa de crédito (Sicoob), uma sociedade de
+economia mista (Banco do Brasil) e um banco privado nacional (Itaú
+Unibanco). React + TypeScript + Tailwind CSS, gráficos com Recharts, ícones
 Heroicons, fonte Montserrat.
 
 ## Fonte dos dados
 
-[Portal de Dados Abertos da CVM](https://dados.cvm.gov.br/dataset/cia_aberta-doc-dfp)
-— AMBEV S.A., CD_CVM 023264, demonstrações consolidadas. Os valores brutos
-(Estoques, Contas a Receber, Fornecedores, Receita Líquida, CPV, EBIT, Lucro
-Líquido) estão em `src/data.ts`; os indicadores (giro de estoque, PME, PMR,
-PMP, ciclo de caixa, NCG, margens) são calculados a partir deles no mesmo
-arquivo, seguindo a metodologia usada na análise do Grupo Guararapes
-(saldos médios, ano comercial de 360 dias).
+Relatório Anual e Relatório da Administração do Sicoob, releases de
+resultados e Relações com Investidores do Banco do Brasil e do Itaú
+Unibanco, e demonstrações financeiras (ITR/DFP) das duas companhias abertas
+na CVM. Os valores e as fontes de cada indicador estão em `src/data.ts`
+(`RAW_DATA`, `SOURCES`); diferenças de metodologia entre instituições (ex.:
+definição de ROE ou de inadimplência) estão documentadas em
+`METHODOLOGY_NOTES` e exibidas no rodapé do dashboard.
 
 ## Rodando localmente
 
