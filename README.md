@@ -31,35 +31,6 @@ npm run build
 npm run preview
 ```
 
-## Dados pendentes (rentabilidade, dívida, inflação e concorrentes)
-
-Além dos indicadores de liquidez/atividade, o dashboard já traz a lógica e o
-layout prontos para:
-
-- **ROE, ROA, ROIC e estrutura de capital** (dívida líquida/EBITDA, cobertura
-  de juros) — faltam os campos `patrimonioLiquido`, `ativoTotal`,
-  `dividaBruta`, `caixaEquivalentes`, `despesaFinanceiraLiquida` e
-  `depreciacaoAmortizacao` em `src/data.ts` (procure por `TODO`).
-- **Decomposição DuPont do ROE** — calculada automaticamente a partir dos
-  mesmos campos acima, sem código adicional.
-- **Receita real vs. nominal (IPCA)** — falta preencher `IPCA_ANUAL` em
-  `src/inflacao.ts` com a variação anual do IPCA de cada ano.
-- **Comparação setorial (benchmarking)** — falta adicionar 1–2 concorrentes
-  diretos em `src/concorrentes.ts` (ex.: Heineken Brasil, Coca-Cola FEMSA).
-
-Enquanto esses valores estiverem `null`/vazios, o dashboard mostra um selo de
-"dado pendente" em vez de números incorretos ou gráficos quebrados. Basta
-preencher os arquivos indicados — nenhuma outra mudança de código é
-necessária.
-
-## Testes
-
-```bash
-npm run test
-```
-
-Testes unitários (Vitest) para as fórmulas financeiras em `src/data.ts`.
-
 ## Deploy no GitHub Pages
 
 Duas opções:
