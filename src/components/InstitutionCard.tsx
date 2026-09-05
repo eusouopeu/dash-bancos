@@ -17,7 +17,7 @@ export function InstitutionCard({ institution, latest, year, agencias }: Institu
         style={{ backgroundColor: institution.color }}
         aria-hidden
       />
-      <div className="p-5 pt-6">
+      <div className="px-4 pb-5 pt-6">
         <div className="min-w-0">
           {/* A cor da instituição fica na régua superior, não no rótulo: em 10px o
               laranja não alcança contraste AA sobre branco. */}
