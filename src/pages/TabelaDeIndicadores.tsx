@@ -5,8 +5,11 @@ import { PageHeader } from '../layout/PageHeader'
 
 interface Column {
   key: string
+  /** Rótulo enxuto usado na tela — abreviado quando precisa caber ao lado da unidade. */
   label: string
-  /** Unidade da coluna — fica no cabeçalho em vez de repetida em cada célula. */
+  /** Nome por extenso, para o cabeçalho do CSV. Cai para `label` quando não abreviado. */
+  fullLabel?: string
+  /** Unidade da coluna — fica ao lado do rótulo, na mesma linha do cabeçalho. */
   unit?: string
   /** Valor exibido na tela, já formatado em pt-BR. */
   format: (r: YearData) => string
@@ -33,14 +36,16 @@ const COLUMNS: Column[] = [
   },
   {
     key: 'lucroLiquido',
-    label: 'Lucro líquido',
+    label: 'LL',
+    fullLabel: 'Lucro líquido',
     unit: 'R$ bi',
     format: (r) => bi(r.lucroLiquido),
     csv: (r) => rawNumber(r.lucroLiquido / 1000, 1),
   },
   {
     key: 'patrimonioLiquido',
-    label: 'Patrimônio líq.',
+    label: 'PL',
+    fullLabel: 'Patrimônio líquido',
     unit: 'R$ bi',
     format: (r) => bi(r.patrimonioLiquido),
     csv: (r) => rawNumber(r.patrimonioLiquido / 1000, 1),
@@ -82,7 +87,10 @@ const COLUMNS: Column[] = [
  * abrir o arquivo já com as colunas separadas e os acentos corretos.
  */
 function downloadCsv(year: number, rows: YearData[]) {
-  const header = COLUMNS.map((c) => (c.unit ? `${c.label} (${c.unit})` : c.label))
+  const header = COLUMNS.map((c) => {
+    const label = c.fullLabel ?? c.label
+    return c.unit ? `${label} (${c.unit})` : label
+  })
   const body = rows.map((r) => COLUMNS.map((c) => c.csv(r)))
   const csv = [header, ...body].map((line) => line.join(';')).join('\r\n')
 
@@ -129,13 +137,8 @@ function YearTable({ year }: { year: number }) {
               {COLUMNS.map((col) => (
                 <th key={col.key} scope="col" className="px-3 py-3 align-bottom">
                   <span className={`eyebrow block whitespace-nowrap ${col.unit ? 'text-right' : ''}`}>
-                    {col.label}
+                    {col.unit ? `${col.label} (${col.unit})` : col.label}
                   </span>
-                  {col.unit && (
-                    <span className="mt-0.5 block text-right font-mono text-[10px] text-muted/70">
-                      {col.unit}
-                    </span>
-                  )}
                 </th>
               ))}
             </tr>

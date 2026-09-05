@@ -6,6 +6,8 @@ interface BrazilPresenceMapProps {
   dataByUF: Record<string, number>
   color: string
   noDataColor?: string
+  /** Rótulo da unidade contada (ex.: "agências", "pontos de atendimento"). */
+  unitLabel?: string
 }
 
 function hexToRgb(hex: string) {
@@ -25,7 +27,12 @@ function colorFor(value: number, max: number, color: string) {
   return `rgb(${mix(r, 245)}, ${mix(g, 243)}, ${mix(b, 238)})`
 }
 
-export function BrazilPresenceMap({ dataByUF, color, noDataColor = '#eae7e0' }: BrazilPresenceMapProps) {
+export function BrazilPresenceMap({
+  dataByUF,
+  color,
+  noDataColor = '#eae7e0',
+  unitLabel = 'agências',
+}: BrazilPresenceMapProps) {
   const [hovered, setHovered] = useState<{ name: string; value: number | undefined } | null>(null)
   const max = useMemo(() => Math.max(0, ...Object.values(dataByUF)), [dataByUF])
 
@@ -48,7 +55,7 @@ export function BrazilPresenceMap({ dataByUF, color, noDataColor = '#eae7e0' }: 
             >
               <title>
                 {loc.name}
-                {value !== undefined ? `: ${formatNumber(value)} agências` : ': sem dado'}
+                {value !== undefined ? `: ${formatNumber(value)} ${unitLabel}` : ': sem dado'}
               </title>
             </path>
           )
@@ -58,7 +65,7 @@ export function BrazilPresenceMap({ dataByUF, color, noDataColor = '#eae7e0' }: 
       {hovered && (
         <div className="pointer-events-none absolute left-1/2 top-0 -translate-x-1/2 whitespace-nowrap rounded-md bg-ink px-2.5 py-1 font-mono text-[11px] text-paper">
           {hovered.name}
-          {hovered.value !== undefined ? `: ${formatNumber(hovered.value)} agências` : ': sem dado'}
+          {hovered.value !== undefined ? `: ${formatNumber(hovered.value)} ${unitLabel}` : ': sem dado'}
         </div>
       )}
 
@@ -69,7 +76,7 @@ export function BrazilPresenceMap({ dataByUF, color, noDataColor = '#eae7e0' }: 
             <span key={t} className="flex-1" style={{ backgroundColor: colorFor(t * max, max, color) }} />
           ))}
         </span>
-        <span>mais agências</span>
+        <span>mais {unitLabel}</span>
       </div>
     </div>
   )

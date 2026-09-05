@@ -317,42 +317,12 @@ export const PRESENCE_HIGHLIGHTS: PresenceHighlight[] = [
   { institution: 'sicoob', stat: '+400', label: 'municípios onde é a única instituição financeira', asOf: '2023' },
   { institution: 'sicoob', stat: '1.859', label: 'municípios de até 50 mil habitantes atendidos', asOf: '2023' },
   { institution: 'sicoob', stat: '8,6 milhões', label: 'cooperados', asOf: '2024' },
-]
-
-export interface AgenciasEntry {
-  institution: InstitutionId
-  count: number
-  asOf: string
-  note: string
-}
-
-/**
- * Contagem de agências/pontos de atendimento. As datas-base DIFEREM entre instituições —
- * não foi possível encontrar os três números para a mesma data-base em fontes primárias
- * confiáveis. BB e Itaú vêm do ESTBAN (ver `NETWORK_SNAPSHOTS`); Sicoob vem de divulgação
- * institucional própria, pois a rede de cooperativas singulares não aparece no ESTBAN sob
- * o nome "Sicoob" (só a "Banco Sicoob S.A.", a tesouraria/banco central do sistema, com
- * poucas agências próprias). Ver `SOURCES`.
- */
-export const AGENCIAS_DATA: AgenciasEntry[] = [
-  {
-    institution: 'sicoob',
-    count: 4600,
-    asOf: '2023–2024',
-    note: '"Mais de 4,6 mil pontos de atendimento" (cooperativas singulares) — divulgação institucional, não capturada pelo ESTBAN sob o nome Sicoob.',
-  },
-  {
-    institution: 'bb',
-    count: 3948,
-    asOf: 'jan/2026',
-    note: 'ESTBAN (Bacen) — agências que reportam balancete mensal sob "BCO DO BRASIL S.A.".',
-  },
-  {
-    institution: 'itau',
-    count: 1498,
-    asOf: 'jan/2026',
-    note: 'ESTBAN (Bacen) — agências sob "ITAÚ UNIBANCO S.A."; menor que o total institucional (2.606 agências + 627 PABs, dez/2023) porque nem todo PAB reporta balancete próprio ao ESTBAN.',
-  },
+  { institution: 'bb', stat: '78 milhões', label: 'clientes (CPF/CNPJ com relacionamento ativo)', asOf: 'dez/2024' },
+  { institution: 'bb', stat: '86.574', label: 'funcionários', asOf: 'dez/2024' },
+  { institution: 'bb', stat: '3.171', label: 'agências tradicionais (+826 digitais e especializadas)', asOf: 'dez/2024' },
+  { institution: 'itau', stat: '99 milhões', label: 'clientes (CPF/CNPJ com relacionamento ativo)', asOf: 'dez/2024' },
+  { institution: 'itau', stat: '96,2 mil', label: 'funcionários', asOf: 'dez/2024' },
+  { institution: 'itau', stat: '2.272', label: 'agências e postos de atendimento', asOf: 'dez/2024' },
 ]
 
 export interface UFCount {
@@ -363,22 +333,53 @@ export interface UFCount {
 export interface NetworkSnapshot {
   institution: InstitutionId
   asOf: string
+  /** Nº de pontos de atendimento somados no mapa (rótulo exato depende de `unitLabel`). */
   agencias: number
   municipios: number
+  /** Como chamar `agencias` na legenda — o conceito não é o mesmo para as três instituições. */
+  unitLabel: string
+  /** Fonte exibida junto ao mapa. */
+  source: string
   porUF: UFCount[]
 }
 
 /**
- * Rede de agências por UF, extraída do ESTBAN (Estatística Bancária Mensal por Município) do
- * Banco Central — dataset público, posição jan/2026, filtrado por nome da instituição
- * ("BCO DO BRASIL S.A." e "ITAÚ UNIBANCO S.A.", entidades bancárias que reportam balancete
- * por agência). O Sicoob não aparece neste recorte (ver nota em `AGENCIAS_DATA`), por isso
- * não há mapa de presença por UF para ele. Fonte: https://www.bcb.gov.br/estatisticas/estatisticabancariamunicipios
+ * Rede por UF. BB e Itaú vêm do ESTBAN (Estatística Bancária Mensal por Município) do Banco
+ * Central — dataset público, posição jan/2026, filtrado por nome da instituição ("BCO DO
+ * BRASIL S.A." e "ITAÚ UNIBANCO S.A.", entidades bancárias que reportam balancete por
+ * agência). Fonte: https://www.bcb.gov.br/estatisticas/estatisticabancariamunicipios
+ *
+ * O Sicoob não aparece nesse recorte (ver `NETWORK_SNAPSHOTS` abaixo) — sua rede por UF vem da
+ * API de canais de atendimento do Open Finance (Sisbr), somando agências + postos de
+ * atendimento + postos eletrônicos das 338 cooperativas singulares do sistema, posição
+ * set/2026. Fonte: https://api.sisbr.com.br/sicoob/externo/dados-abertos/v1/branches
+ * (endpoint público listado no catálogo de dados abertos do Bacen, DASFN).
  */
 export const NETWORK_SNAPSHOTS: NetworkSnapshot[] = [
   {
+    institution: 'sicoob',
+    asOf: 'set/2026',
+    agencias: 5294,
+    municipios: 2550,
+    unitLabel: 'pontos de atendimento',
+    source: 'API de canais de atendimento (Open Finance/Sisbr)',
+    porUF: [
+      { uf: 'AC', count: 9 }, { uf: 'AL', count: 7 }, { uf: 'AM', count: 22 },
+      { uf: 'AP', count: 9 }, { uf: 'BA', count: 175 }, { uf: 'CE', count: 12 },
+      { uf: 'DF', count: 92 }, { uf: 'ES', count: 157 }, { uf: 'GO', count: 310 },
+      { uf: 'MA', count: 42 }, { uf: 'MG', count: 1481 }, { uf: 'MS', count: 83 },
+      { uf: 'MT', count: 166 }, { uf: 'PA', count: 50 }, { uf: 'PB', count: 40 },
+      { uf: 'PE', count: 46 }, { uf: 'PI', count: 7 }, { uf: 'PR', count: 420 },
+      { uf: 'RJ', count: 204 }, { uf: 'RN', count: 16 }, { uf: 'RO', count: 133 },
+      { uf: 'RR', count: 10 }, { uf: 'RS', count: 232 }, { uf: 'SC', count: 532 },
+      { uf: 'SE', count: 1 }, { uf: 'SP', count: 1003 }, { uf: 'TO', count: 35 },
+    ],
+  },
+  {
     institution: 'bb',
     asOf: 'jan/2026',
+    unitLabel: 'agências',
+    source: 'ESTBAN/Bacen',
     agencias: 3948,
     municipios: 2302,
     porUF: [
@@ -396,6 +397,8 @@ export const NETWORK_SNAPSHOTS: NetworkSnapshot[] = [
   {
     institution: 'itau',
     asOf: 'jan/2026',
+    unitLabel: 'agências',
+    source: 'ESTBAN/Bacen',
     agencias: 1498,
     municipios: 854,
     porUF: [
@@ -566,7 +569,7 @@ export const LIMITATIONS: string[] = [
   'A inadimplência do Sicoob (ativos problemáticos E–H) é conceitualmente mais ampla que a de BB e Itaú (atraso acima de 90 dias). As linhas desse gráfico não são comparáveis 1:1.',
   'O índice de eficiência do Sicoob não é divulgado para o sistema combinado em todos os anos da série — 2022 e 2025 seguem em aberto, e a inadimplência de 2025 também.',
   'ROE e ROA são recalculados aqui sobre saldos de fechamento. Os números oficiais de cada instituição usam saldos médios e resultados ajustados, e por isso são sistematicamente mais altos.',
-  'A contagem de agências tem datas-base diferentes: BB e Itaú vêm do ESTBAN (jan/2026); o Sicoob vem de divulgação institucional própria (2023–2024), porque as cooperativas singulares não aparecem no ESTBAN sob esse nome.',
+  'A contagem de rede tem datas-base e conceitos diferentes: BB e Itaú vêm do ESTBAN (jan/2026, só agências com balancete próprio); o Sicoob vem da API de canais de atendimento do Open Finance (set/2026, agências + postos de atendimento das cooperativas singulares), porque nenhuma delas aparece no ESTBAN sob o nome Sicoob.',
   'O market share é estimado, não publicado: o Banco Central não divulga um ranking direto de participação por instituição.',
 ]
 
@@ -607,7 +610,7 @@ export const REFERENCE_GROUPS: ReferenceGroup[] = [
     id: 'sicoob',
     title: 'Sicoob',
     intro:
-      'A série financeira vem das Demonstrações Financeiras Combinadas do sistema, tabuladas por agência de rating; os dados de rede e de 2025 vêm de divulgação institucional reproduzida na imprensa especializada.',
+      'A série financeira vem das Demonstrações Financeiras Combinadas do sistema, tabuladas por agência de rating; os dados de 2025 vêm de divulgação institucional reproduzida na imprensa especializada. A rede de agências e pontos de atendimento (mapa de presença) vem da API de canais de atendimento do Open Finance, publicada pelas cooperativas do sistema sob obrigação regulatória do Bacen.',
   },
   {
     id: 'bb',
@@ -707,6 +710,15 @@ export const REFERENCES: Reference[] = [
     accessedAt: ACCESS,
     note: 'Ativos totais, patrimônio líquido e carteira ampliada de 2025.',
   },
+  {
+    group: 'sicoob',
+    author: 'SICOOB. Central de Serviços em Bens e Recursos (Sisbr).',
+    emphasis: 'API de canais de atendimento — Open Finance Brasil',
+    after: '. [S. l.]: Sisbr, 2026. Base 2 set. 2026.',
+    url: 'https://api.sisbr.com.br/sicoob/externo/dados-abertos/v1/branches',
+    accessedAt: ACCESS,
+    note: 'Agências, postos de atendimento e postos eletrônicos das 338 cooperativas singulares do sistema, por município e UF — endpoint público listado no catálogo de dados abertos do Bacen (DASFN) sob a API "canais_atendimento", que cada instituição do SFN é obrigada a publicar. Base de `NETWORK_SNAPSHOTS` para o Sicoob.',
+  },
 
   // --- Banco do Brasil ---
   {
@@ -773,6 +785,26 @@ export const REFERENCES: Reference[] = [
     url: 'https://www.seudinheiro.com/2026/empresas/balanco-banco-do-brasil-bb-bbas3-4t25-2025-lucro-rentabilidade-roe-inadimplencia-miql/',
     accessedAt: ACCESS,
   },
+  {
+    group: 'bb',
+    author: '',
+    before: 'Lucro do Banco do Brasil cresce 6,6% em 2024 e chega a R$ 37,8 bilhões.',
+    emphasis: 'Sindicato dos Bancários',
+    after: ', São Paulo, 2025.',
+    url: 'https://spbancarios.com.br/02/2025/lucro-do-banco-do-brasil-cresce-66-em-2024-e-chega-r-378-bilhoes',
+    accessedAt: ACCESS,
+    note: 'Reproduz o release do BB: 86.574 funcionários, 3.171 agências tradicionais e 826 agências digitais/especializadas em dez/2024. Base de dois itens de `PRESENCE_HIGHLIGHTS` para o BB.',
+  },
+  {
+    group: 'bb',
+    author: '',
+    before: 'Nubank passa Itaú em quantidade de clientes, segundo Banco Central.',
+    emphasis: 'Finsiders Brasil',
+    after: ', São Paulo, 2025.',
+    url: 'https://finsidersbrasil.com.br/estudos-e-relatorios/ranking/nubank-passa-itau-em-quantidade-de-clientes-segundo-banco-central/',
+    accessedAt: ACCESS,
+    note: 'Reproduz o ranking de clientes do Banco Central (Cadastro de Clientes do Sistema Financeiro + Sistema de Informações de Crédito, sem duplicidade de CPF/CNPJ), dez/2024: BB com 78 milhões. Mesma fonte usada para o Itaú — critério único que torna os dois comparáveis entre si (mas não com os "clientes" que cada banco divulga em seu próprio release, calculados de outra forma).',
+  },
 
   // --- Itaú Unibanco ---
   {
@@ -791,6 +823,26 @@ export const REFERENCES: Reference[] = [
     after: ': release de resultados. São Paulo: Itaú Unibanco, 2025.',
     url: 'https://www.itau.com.br/download-file/v2/d/42787847-4cf6-4461-94a5-40ed237dca33/1182c2ec-ea05-7a1c-bd2d-f1f392285245?origin=1',
     accessedAt: ACCESS,
+  },
+  {
+    group: 'itau',
+    author: '',
+    before: 'Itaú aumenta despesa com pessoal e fecha 212 agências em 2024.',
+    emphasis: 'Metrópoles',
+    after: ', Brasília, DF, 2025.',
+    url: 'https://www.metropoles.com/negocios/itau-aumenta-despesa-com-pessoal-e-fecha-212-agencias-em-2024',
+    accessedAt: ACCESS,
+    note: 'Reproduz o release 4T24 do Itaú: 2.272 agências e postos de atendimento e 96,2 mil funcionários em dez/2024. Base de dois itens de `PRESENCE_HIGHLIGHTS` para o Itaú.',
+  },
+  {
+    group: 'itau',
+    author: '',
+    before: 'Nubank passa Itaú em quantidade de clientes, segundo Banco Central.',
+    emphasis: 'Finsiders Brasil',
+    after: ', São Paulo, 2025.',
+    url: 'https://finsidersbrasil.com.br/estudos-e-relatorios/ranking/nubank-passa-itau-em-quantidade-de-clientes-segundo-banco-central/',
+    accessedAt: ACCESS,
+    note: 'Reproduz o ranking de clientes do Banco Central (mesmo critério citado no grupo BB), dez/2024: Itaú com 99 milhões, ante 101 milhões em dez/2023.',
   },
   {
     group: 'itau',
@@ -884,6 +936,15 @@ export const REFERENCES: Reference[] = [
     url: 'https://www.bcb.gov.br/estatisticas/estatisticabancariamunicipios',
     accessedAt: ACCESS,
     note: 'Agências por unidade da federação e por município, para BB e Itaú.',
+  },
+  {
+    group: 'geral',
+    author: 'BRASIL. Banco Central do Brasil.',
+    emphasis: 'DASFN — Catálogo de Dados Abertos das Instituições do SFN',
+    after: '. Brasília, DF: Bacen, 2026.',
+    url: 'https://dadosabertos.bcb.gov.br/dataset/canaisatendimento',
+    accessedAt: ACCESS,
+    note: 'Catálogo que aponta para a API de canais de atendimento de cada instituição do SFN — usado para localizar o endpoint do Sicoob (Sisbr) citado no grupo Sicoob.',
   },
   {
     group: 'geral',

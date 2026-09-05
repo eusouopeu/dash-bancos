@@ -59,7 +59,10 @@ export function IndicatorComparison({ rows, data }: IndicatorComparisonProps) {
                 const isBest = best && best.inst.id === inst.id
                 return (
                   <li key={inst.id} className="flex items-center gap-3">
-                    <span className="w-12 shrink-0 font-mono text-[11px] text-muted">
+                    <span
+                      className={`w-12 shrink-0 font-mono text-[11px] ${isBest ? '' : 'text-muted'}`}
+                      style={isBest ? { color: inst.color, fontWeight: 600 } : undefined}
+                    >
                       {inst.shortName}
                     </span>
                     {/* Sem dado não ganha trilho cheio: uma faixa tracejada evita que a
@@ -73,19 +76,21 @@ export function IndicatorComparison({ rows, data }: IndicatorComparisonProps) {
                           style={{
                             width: `${width}%`,
                             backgroundColor: inst.color,
-                            opacity: isBest ? 1 : 0.55,
                           }}
                         />
                       </span>
                     )}
                     <span
                       className={`tnum w-16 shrink-0 text-right font-mono ${
-                        value === undefined
-                          ? 'text-[10px] text-muted'
-                          : isBest
-                            ? 'text-xs font-semibold text-ink'
-                            : 'text-xs text-muted'
+                        value === undefined ? 'text-[10px] text-muted' : 'text-xs'
                       }`}
+                      style={
+                        value === undefined
+                          ? undefined
+                          : isBest
+                            ? { color: inst.color, fontWeight: 600 }
+                            : { color: '#737373' }
+                      }
                     >
                       {value === undefined ? 'sem dado' : formatPercent(value)}
                     </span>

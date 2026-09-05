@@ -10,10 +10,8 @@ import {
 } from '../components/ChartSection'
 import { IndicatorComparison, type ComparisonRow } from '../components/IndicatorComparison'
 import { PresenceHighlights } from '../components/PresenceHighlights'
-import { AgenciasComparisonChart } from '../components/AgenciasComparisonChart'
 import { BrazilPresenceMap } from '../components/BrazilPresenceMap'
 import {
-  AGENCIAS_DATA,
   INSTITUTIONS,
   NETWORK_SNAPSHOTS,
   PRESENCE_HIGHLIGHTS,
@@ -21,9 +19,44 @@ import {
   YEARS,
   institutionById,
   tryDataFor,
+  type InstitutionId,
 } from '../data'
 import { formatNumber } from '../format'
 import { PageHeader } from '../layout/PageHeader'
+
+const REDE_NOTES: Record<InstitutionId, string> = {
+  sicoob: 'Único dos três que divulga municípios atendidos e número de cooperados.',
+  bb: 'Clientes segundo critério do Banco Central (CPF/CNPJ únicos) — não é o número de correntistas que o próprio banco divulga.',
+  itau: 'Clientes segundo critério do Banco Central (CPF/CNPJ únicos) — não é o número de correntistas que o próprio banco divulga.',
+}
+
+function InstitutionToggle({
+  value,
+  onChange,
+}: {
+  value: InstitutionId
+  onChange: (id: InstitutionId) => void
+}) {
+  return (
+    <div className="flex overflow-hidden rounded-md border border-rule">
+      {(['sicoob', 'bb', 'itau'] as const).map((id) => (
+        <button
+          key={id}
+          onClick={() => onChange(id)}
+          aria-pressed={value === id}
+          className="px-2.5 py-1 font-mono text-[11px] font-medium transition-colors"
+          style={
+            value === id
+              ? { backgroundColor: institutionById(id).color, color: '#fff' }
+              : { color: '#737373' }
+          }
+        >
+          {institutionById(id).shortName}
+        </button>
+      ))}
+    </div>
+  )
+}
 
 const COMPARISON_ROWS: ComparisonRow[] = [
   { label: 'ROE — retorno sobre patrimônio líquido', key: 'roe', better: 'max' },
@@ -79,7 +112,8 @@ function ChartPanel({ title, unit, children }: { title: string; unit: string; ch
 
 export function PanoramaGeral() {
   const [year, setYear] = useState<number>(YEARS[YEARS.length - 1])
-  const [mapInstitution, setMapInstitution] = useState<'bb' | 'itau'>('bb')
+  const [mapInstitution, setMapInstitution] = useState<InstitutionId>('sicoob')
+  const [redeInstitution, setRedeInstitution] = useState<InstitutionId>('sicoob')
 
   const rows = [...RAW_DATA]
     .filter((r) => r.year === year)
@@ -89,7 +123,7 @@ export function PanoramaGeral() {
         INSTITUTIONS.findIndex((i) => i.id === b.institution),
     )
 
-  const sicoobHighlights = PRESENCE_HIGHLIGHTS.filter((h) => h.institution === 'sicoob')
+  const highlights = PRESENCE_HIGHLIGHTS.filter((h) => h.institution === redeInstitution)
   const snapshot = NETWORK_SNAPSHOTS.find((n) => n.institution === mapInstitution)!
   const dataByUF = Object.fromEntries(snapshot.porUF.map((u) => [u.uf, u.count]))
 
@@ -135,63 +169,37 @@ export function PanoramaGeral() {
               institution={inst}
               latest={tryDataFor(inst.id, year)}
               year={year}
+              agencias={NETWORK_SNAPSHOTS.find((n) => n.institution === inst.id)!.agencias}
             />
           ))}
         </section>
 
-        <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
-          <Panel
-            title={`Como as três se comparam em ${year}`}
-            note="Barra cheia = melhor desempenho no indicador."
-            className="lg:col-span-2"
-          >
-            <IndicatorComparison rows={COMPARISON_ROWS} data={rows} />
-          </Panel>
-
-          <Panel
-            title="Rede de atendimento — Sicoob"
-            note="Único dos três que divulga municípios atendidos e número de cooperados."
-            className="self-start"
-          >
-            <PresenceHighlights items={sicoobHighlights} />
-          </Panel>
-        </div>
+        <Panel
+          title={`Como as três se comparam em ${year}`}
+          note="Barra cheia = melhor desempenho no indicador."
+        >
+          <IndicatorComparison rows={COMPARISON_ROWS} data={rows} />
+        </Panel>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           <Panel
-            title="Mapa de presença por agências"
-            note={`${formatNumber(snapshot.agencias)} agências em ${formatNumber(snapshot.municipios)} municípios · ${snapshot.asOf}, ESTBAN/Bacen.`}
-            action={
-              <div className="flex overflow-hidden rounded-md border border-rule">
-                {(['bb', 'itau'] as const).map((id) => (
-                  <button
-                    key={id}
-                    onClick={() => setMapInstitution(id)}
-                    aria-pressed={mapInstitution === id}
-                    className="px-2.5 py-1 font-mono text-[11px] font-medium transition-colors"
-                    style={
-                      mapInstitution === id
-                        ? { backgroundColor: institutionById(id).color, color: '#fff' }
-                        : { color: '#737373' }
-                    }
-                  >
-                    {institutionById(id).shortName}
-                  </button>
-                ))}
-              </div>
-            }
+            title="Mapa de presença"
+            note={`${formatNumber(snapshot.agencias)} ${snapshot.unitLabel} em ${formatNumber(snapshot.municipios)} municípios · ${snapshot.asOf}, ${snapshot.source}.`}
+            action={<InstitutionToggle value={mapInstitution} onChange={setMapInstitution} />}
           >
             <BrazilPresenceMap
               dataByUF={dataByUF}
               color={institutionById(mapInstitution).color}
+              unitLabel={snapshot.unitLabel}
             />
           </Panel>
 
           <Panel
-            title="Agências e pontos de atendimento"
-            note="As datas-base diferem entre instituições — ver notas abaixo."
+            title="Rede de atendimento"
+            note={REDE_NOTES[redeInstitution]}
+            action={<InstitutionToggle value={redeInstitution} onChange={setRedeInstitution} />}
           >
-            <AgenciasComparisonChart data={AGENCIAS_DATA} />
+            <PresenceHighlights items={highlights} />
           </Panel>
         </div>
 
