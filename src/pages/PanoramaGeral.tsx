@@ -25,7 +25,7 @@ import { formatNumber } from '../format'
 import { PageHeader } from '../layout/PageHeader'
 
 const REDE_NOTES: Record<InstitutionId, string> = {
-  sicoob: 'Único dos três que divulga municípios atendidos e número de cooperados.',
+  sicoob: 'Único dos três que divulga número de cooperados; municípios atendidos por BB e Itaú são estimados (ver metodologia).',
   bb: 'Clientes segundo critério do Banco Central (CPF/CNPJ únicos) — não é o número de correntistas que o próprio banco divulga.',
   itau: 'Clientes segundo critério do Banco Central (CPF/CNPJ únicos) — não é o número de correntistas que o próprio banco divulga.',
 }

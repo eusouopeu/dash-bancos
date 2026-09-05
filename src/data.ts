@@ -307,19 +307,22 @@ export interface PresenceHighlight {
 }
 
 /**
- * Fatos de presença/rede publicados por cada instituição. Não são comparáveis 1:1 entre
- * si: cada instituição divulga métricas diferentes, em datas diferentes, e nem todas
- * publicam os mesmos indicadores. O Sicoob divulga diretamente "municípios com presença"
- * e "municípios de até 50 mil habitantes atendidos" — BB e Itaú não publicam esses dois
- * números; aqui eles são calculados cruzando o ESTBAN (município de cada agência) com as
- * estimativas de população por município do IBGE (ver `NETWORK_SNAPSHOTS` e `REFERENCES`).
- * Ver `SOURCES` para a origem de cada dado.
+ * Fatos de presença/rede de cada instituição. Não são comparáveis 1:1 entre si: cada uma
+ * divulga métricas diferentes, em datas diferentes, e nenhuma publica pronto "municípios
+ * atendidos" ou "municípios de até 50 mil habitantes atendidos" — os três números de
+ * município aqui (Sicoob, BB e Itaú) são calculados por município de agência cruzado com a
+ * estimativa de população do IBGE; muda só a base de agências (Sicoob: API de canais de
+ * atendimento/Sisbr, set/2026; BB e Itaú: ESTBAN, jan/2026). A contagem de agências físicas
+ * do Sicoob vem da mesma API do Sisbr (tipo "AGENCIA", que exclui postos de atendimento e
+ * eletrônicos). Cooperados e funcionários vêm de divulgação institucional/imprensa — ver
+ * `REFERENCES`.
  */
 export const PRESENCE_HIGHLIGHTS: PresenceHighlight[] = [
-  { institution: 'sicoob', stat: '+2.000', label: 'municípios com presença', asOf: '2023' },
-  { institution: 'sicoob', stat: '+400', label: 'municípios onde é a única instituição financeira', asOf: '2023' },
-  { institution: 'sicoob', stat: '1.859', label: 'municípios de até 50 mil habitantes atendidos', asOf: '2023' },
-  { institution: 'sicoob', stat: '8,6 milhões', label: 'cooperados', asOf: '2024' },
+  { institution: 'sicoob', stat: '9,7 milhões', label: 'cooperados', asOf: 'dez/2025' },
+  { institution: 'sicoob', stat: '61 mil', label: 'funcionários', asOf: '2025' },
+  { institution: 'sicoob', stat: '337', label: 'agências físicas', asOf: 'set/2026' },
+  { institution: 'sicoob', stat: '2.532', label: 'municípios atendidos', asOf: 'set/2026' },
+  { institution: 'sicoob', stat: '1.977', label: 'municípios de até 50 mil habitantes atendidos', asOf: 'set/2026' },
   { institution: 'bb', stat: '78 milhões', label: 'clientes (CPF/CNPJ com relacionamento ativo)', asOf: 'dez/2024' },
   { institution: 'bb', stat: '86.574', label: 'funcionários', asOf: 'dez/2024' },
   { institution: 'bb', stat: '3.171', label: 'agências tradicionais (+826 digitais e especializadas)', asOf: 'dez/2024' },
@@ -577,7 +580,7 @@ export const LIMITATIONS: string[] = [
   'O índice de eficiência do Sicoob não é divulgado para o sistema combinado em todos os anos da série — 2022 e 2025 seguem em aberto, e a inadimplência de 2025 também.',
   'ROE e ROA são recalculados aqui sobre saldos de fechamento. Os números oficiais de cada instituição usam saldos médios e resultados ajustados, e por isso são sistematicamente mais altos.',
   'A contagem de rede tem datas-base e conceitos diferentes: BB e Itaú vêm do ESTBAN (jan/2026, só agências com balancete próprio); o Sicoob vem da API de canais de atendimento do Open Finance (set/2026, agências + postos de atendimento das cooperativas singulares), porque nenhuma delas aparece no ESTBAN sob o nome Sicoob.',
-  'Para BB e Itaú, "municípios de até 50 mil habitantes atendidos" não é um número publicado pelos bancos: é obtido cruzando o município de cada agência no ESTBAN (jan/2026) com a estimativa de população residente por município mais recente do IBGE (2026). Já o número do Sicoob (1.859, base 2023) é autodeclarado pela cooperativa — os três não usam a mesma base de população nem a mesma data.',
+  '"Municípios atendidos" e "municípios de até 50 mil habitantes atendidos" não são números publicados por nenhuma das três instituições: são obtidos cruzando o município de cada ponto de atendimento (ESTBAN para BB e Itaú, jan/2026; API de canais de atendimento/Sisbr para o Sicoob, set/2026) com a estimativa de população residente por município mais recente do IBGE (2026). Datas-base diferentes entre as três limitam a comparação direta.',
   'O market share é estimado, não publicado: o Banco Central não divulga um ranking direto de participação por instituição.',
 ]
 
@@ -658,16 +661,7 @@ export const REFERENCES: Reference[] = [
     after: '. Brasília, DF: Sicoob Confederação, 2025.',
     url: 'https://www.sicoob.com.br/documents/3044975/255333434/Relat%C3%B3rio+Anual+2024.pdf',
     accessedAt: ACCESS,
-    note: 'Número de cooperados e panorama da rede em 2024.',
-  },
-  {
-    group: 'sicoob',
-    author: 'SICOOB.',
-    emphasis: 'Relatório anual 2023',
-    after: '. Brasília, DF: Sicoob Confederação, 2024.',
-    url: 'https://www.sicoob.com.br/documents/2222345/8131683/Relat%C3%B3rio+2023__.pdf',
-    accessedAt: ACCESS,
-    note: 'Municípios atendidos, municípios de presença exclusiva e pontos de atendimento.',
+    note: 'Panorama geral da rede e dos resultados de 2024.',
   },
   {
     group: 'sicoob',
@@ -720,12 +714,33 @@ export const REFERENCES: Reference[] = [
   },
   {
     group: 'sicoob',
+    author: '',
+    before:
+      'SICOOB registra R$ 430,1 bilhões em ativos e amplia carteira de crédito em 2025.',
+    emphasis: 'Paraná Cooperativo',
+    after: ', Curitiba, 8 abr. 2026.',
+    url: 'https://www.paranacooperativo.coop.br/noticias-cooperativismo/sicoob-registra-r-430-1-bilhoes-em-ativos-e-amplia-carteira-de-credito-em-2025',
+    accessedAt: ACCESS,
+    note: 'Número de cooperados (9,7 milhões, base dez/2025) usado em `PRESENCE_HIGHLIGHTS` para o Sicoob.',
+  },
+  {
+    group: 'sicoob',
+    author: '',
+    before: 'Sicoob e Sicredi estão entre os maiores empregadores do país.',
+    emphasis: 'Portal do Cooperativismo Financeiro',
+    after: ', [S. l.], 2025.',
+    url: 'https://cooperativismodecredito.coop.br/2025/11/sicoob-e-sicredi-estao-entre-os-maiores-empregadores-do-pais/',
+    accessedAt: ACCESS,
+    note: 'Ranking de maiores empregadores do país (2025): Sicoob com 61 mil colaboradores, no mesmo levantamento que traz BB (86 mil) e Itaú (96 mil) — base de comparação única entre os três para `PRESENCE_HIGHLIGHTS`.',
+  },
+  {
+    group: 'sicoob',
     author: 'SICOOB. Central de Serviços em Bens e Recursos (Sisbr).',
     emphasis: 'API de canais de atendimento — Open Finance Brasil',
     after: '. [S. l.]: Sisbr, 2026. Base 2 set. 2026.',
     url: 'https://api.sisbr.com.br/sicoob/externo/dados-abertos/v1/branches',
     accessedAt: ACCESS,
-    note: 'Agências, postos de atendimento e postos eletrônicos das 338 cooperativas singulares do sistema, por município e UF — endpoint público listado no catálogo de dados abertos do Bacen (DASFN) sob a API "canais_atendimento", que cada instituição do SFN é obrigada a publicar. Base de `NETWORK_SNAPSHOTS` para o Sicoob.',
+    note: 'Agências, postos de atendimento e postos eletrônicos das 338 cooperativas singulares do sistema, por município e UF — endpoint público listado no catálogo de dados abertos do Bacen (DASFN) sob a API "canais_atendimento", que cada instituição do SFN é obrigada a publicar. Base de `NETWORK_SNAPSHOTS` e, cruzada com a população do IBGE, dos itens "agências físicas", "municípios atendidos" e "municípios de até 50 mil habitantes atendidos" em `PRESENCE_HIGHLIGHTS` para o Sicoob.',
   },
 
   // --- Banco do Brasil ---
@@ -952,7 +967,7 @@ export const REFERENCES: Reference[] = [
     after: ': agregado 6579 (Sidra). Rio de Janeiro: IBGE, 2026.',
     url: 'https://servicodados.ibge.gov.br/api/v3/agregados/6579',
     accessedAt: ACCESS,
-    note: 'População estimada por município (2026), cruzada com o ESTBAN para contar quantos municípios atendidos por BB e Itaú têm até 50 mil habitantes.',
+    note: 'População estimada por município (2026), cruzada com o ESTBAN (BB e Itaú) e com a API do Sisbr (Sicoob) para contar quantos municípios atendidos por cada instituição têm até 50 mil habitantes.',
   },
   {
     group: 'geral',
