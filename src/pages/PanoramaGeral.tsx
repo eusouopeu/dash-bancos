@@ -58,17 +58,23 @@ function InstitutionToggle({
   )
 }
 
-const COMPARISON_ROWS: ComparisonRow[] = [
-  { label: 'ROE — retorno sobre patrimônio líquido', key: 'roe', better: 'max' },
-  { label: 'ROA — retorno sobre ativos', key: 'roa', better: 'max' },
-  { label: 'Índice de eficiência', key: 'eficiencia', better: 'min' },
-  {
-    label: 'Inadimplência acima de 90 dias',
-    key: 'inadimplencia',
-    better: 'min',
-    hint: 'O índice do Sicoob usa o critério de ativos problemáticos (E–H), mais amplo que o de BB e Itaú — os valores não são comparáveis 1:1.',
-  },
-]
+/** Eficiência e inadimplência usam 2024 fixo — é o exercício mais recente com dado do Sicoob para os dois. */
+const INDICATORS_YEAR = 2024
+
+function comparisonRowsFor(year: number): ComparisonRow[] {
+  return [
+    { label: 'ROE — retorno sobre patrimônio líquido', key: 'roe', year, better: 'max' },
+    { label: 'ROA — retorno sobre ativos', key: 'roa', year, better: 'max' },
+    { label: 'Índice de eficiência', key: 'eficiencia', year: INDICATORS_YEAR, better: 'min' },
+    {
+      label: 'Inadimplência acima de 90 dias',
+      key: 'inadimplencia',
+      year: INDICATORS_YEAR,
+      better: 'min',
+      hint: 'O índice do Sicoob usa o critério de ativos problemáticos (E–H), mais amplo que o de BB e Itaú — os valores não são comparáveis 1:1.',
+    },
+  ]
+}
 
 function Panel({
   title,
@@ -115,13 +121,6 @@ export function PanoramaGeral() {
   const [mapInstitution, setMapInstitution] = useState<InstitutionId>('sicoob')
   const [redeInstitution, setRedeInstitution] = useState<InstitutionId>('sicoob')
 
-  const rows = [...RAW_DATA]
-    .filter((r) => r.year === year)
-    .sort(
-      (a, b) =>
-        INSTITUTIONS.findIndex((i) => i.id === a.institution) -
-        INSTITUTIONS.findIndex((i) => i.id === b.institution),
-    )
 
   const highlights = PRESENCE_HIGHLIGHTS.filter((h) => h.institution === redeInstitution)
   const snapshot = NETWORK_SNAPSHOTS.find((n) => n.institution === mapInstitution)!
@@ -174,11 +173,8 @@ export function PanoramaGeral() {
           ))}
         </section>
 
-        <Panel
-          title={`Como as três se comparam em ${year}`}
-          note="Barra cheia = melhor desempenho no indicador."
-        >
-          <IndicatorComparison rows={COMPARISON_ROWS} data={rows} />
+        <Panel title="Indicadores" note="Barra cheia = melhor desempenho no indicador.">
+          <IndicatorComparison rows={comparisonRowsFor(year)} data={RAW_DATA} />
         </Panel>
 
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

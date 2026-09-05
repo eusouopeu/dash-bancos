@@ -11,7 +11,7 @@ interface InstitutionCardProps {
 
 export function InstitutionCard({ institution, latest, year, agencias }: InstitutionCardProps) {
   return (
-    <div className="relative overflow-hidden rounded-lg border border-rule bg-surface">
+    <div className="relative overflow-hidden rounded-lg border border-rule bg-surface @container">
       <span
         className="absolute inset-x-0 top-0 h-[3px]"
         style={{ backgroundColor: institution.color }}
@@ -36,10 +36,7 @@ export function InstitutionCard({ institution, latest, year, agencias }: Institu
               <p className="eyebrow mt-2">Ativos totais</p>
             </div>
 
-            <dl
-              className="mt-5 grid gap-px overflow-hidden rounded-md bg-rule-soft"
-              style={{ gridTemplateColumns: '35% 65%' }}
-            >
+            <dl className="mt-5 grid grid-cols-1 gap-px overflow-hidden rounded-md bg-rule-soft @[288px]:[grid-template-columns:35%_65%]">
               <div className="bg-surface px-3 py-2.5">
                 <dt className="eyebrow">Agências</dt>
                 <dd className="tnum mt-1 font-mono text-[17px] font-semibold text-ink">

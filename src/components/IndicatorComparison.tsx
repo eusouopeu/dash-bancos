@@ -1,9 +1,13 @@
+import { useState } from 'react'
+import { QuestionMarkCircleIcon } from '@heroicons/react/24/outline'
 import { INSTITUTIONS, type NumericIndicatorKey, type YearData } from '../data'
 import { formatPercent } from '../format'
 
 export interface ComparisonRow {
   label: string
   key: NumericIndicatorKey
+  /** Exercício de referência exibido para este indicador (pode diferir do exercício selecionado no topo). */
+  year: number
   /** 'max' = maior é melhor (rentabilidade); 'min' = menor é melhor (eficiência, inadimplência). */
   better: 'max' | 'min'
   hint?: string
@@ -14,18 +18,41 @@ interface IndicatorComparisonProps {
   data: YearData[]
 }
 
+/** Fórmula e leitura de cada indicador, para o popover de ajuda ao lado do título. */
+const INDICATOR_INFO: Record<'roe' | 'roa' | 'eficiencia' | 'inadimplencia', { formula: string; explanation: string }> = {
+  roe: {
+    formula: 'Lucro Líquido ÷ Patrimônio Líquido × 100',
+    explanation:
+      'Quanto maior o ROE, mais resultado a instituição gera para cada real de capital próprio (dos acionistas ou dos cooperados).',
+  },
+  roa: {
+    formula: 'Lucro Líquido ÷ Ativos Totais × 100',
+    explanation: 'Quanto maior o ROA, mais eficiente a instituição é em transformar o total de ativos que administra em resultado.',
+  },
+  eficiencia: {
+    formula: 'Despesas Administrativas ÷ Receitas Operacionais × 100',
+    explanation: 'Quanto menor o índice de eficiência, menor a parcela da receita consumida pela estrutura antes de virar resultado.',
+  },
+  inadimplencia: {
+    formula: 'Carteira Vencida > 90 dias ÷ Carteira de Crédito × 100',
+    explanation: 'Quanto menor a inadimplência, menor a parcela da carteira de crédito com pagamento em atraso há mais de 90 dias.',
+  },
+}
+
 /**
  * Régua comparativa: cada indicador vira três barras proporcionais, para que a distância
  * entre as instituições seja visível — não apenas legível. A barra vencedora é marcada
  * conforme a direção do indicador (maior ROE é bom; maior inadimplência não é).
  */
 export function IndicatorComparison({ rows, data }: IndicatorComparisonProps) {
+  const [openKey, setOpenKey] = useState<string | null>(null)
+
   return (
     <div className="divide-y divide-rule-soft">
       {rows.map((row) => {
         const values = INSTITUTIONS.map((inst) => ({
           inst,
-          value: data.find((d) => d.institution === inst.id)?.[row.key],
+          value: data.find((d) => d.institution === inst.id && d.year === row.year)?.[row.key],
         }))
         const present = values.filter((v) => v.value !== undefined) as {
           inst: (typeof INSTITUTIONS)[number]
@@ -44,10 +71,43 @@ export function IndicatorComparison({ rows, data }: IndicatorComparisonProps) {
             )
           : undefined
 
+        const info = INDICATOR_INFO[row.key as keyof typeof INDICATOR_INFO]
+        const isOpen = openKey === row.key
+
         return (
           <div key={row.key} className="py-4 first:pt-0 last:pb-0">
             <div className="mb-3 flex items-baseline justify-between gap-3">
-              <h3 className="text-[13px] font-semibold text-ink">{row.label}</h3>
+              <div className="relative flex items-center gap-1.5">
+                <h3 className="text-[13px] font-semibold text-ink">
+                  {row.label} <span className="font-normal text-muted">· {row.year}</span>
+                </h3>
+                <button
+                  type="button"
+                  aria-label={`O que é ${row.label}`}
+                  aria-expanded={isOpen}
+                  onClick={() => setOpenKey(isOpen ? null : row.key)}
+                  className="flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-muted transition-colors hover:text-ink"
+                >
+                  <QuestionMarkCircleIcon className="h-4 w-4" />
+                </button>
+                {isOpen && (
+                  <>
+                    {/* Backdrop invisível que fecha o popover ao clicar fora. */}
+                    <button
+                      type="button"
+                      aria-hidden
+                      tabIndex={-1}
+                      onClick={() => setOpenKey(null)}
+                      className="fixed inset-0 z-10 cursor-default"
+                    />
+                    <div className="absolute left-0 top-full z-20 mt-2 w-64 rounded-md border border-rule bg-surface p-3 shadow-lg">
+                      <p className="font-mono text-[10px] uppercase tracking-wide text-muted">Fórmula</p>
+                      <p className="tnum mt-1 font-mono text-[11px] text-ink">{info.formula}</p>
+                      <p className="mt-2.5 text-[11px] leading-relaxed text-muted">{info.explanation}</p>
+                    </div>
+                  </>
+                )}
+              </div>
               <span className="eyebrow shrink-0">
                 {row.better === 'max' ? 'maior é melhor' : 'menor é melhor'}
               </span>
