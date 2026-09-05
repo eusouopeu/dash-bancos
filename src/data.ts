@@ -309,8 +309,11 @@ export interface PresenceHighlight {
 /**
  * Fatos de presença/rede publicados por cada instituição. Não são comparáveis 1:1 entre
  * si: cada instituição divulga métricas diferentes, em datas diferentes, e nem todas
- * publicam os mesmos indicadores (ex.: BB e Itaú não divulgam "número de municípios
- * atendidos" como o Sicoob). Ver `SOURCES` para a origem de cada dado.
+ * publicam os mesmos indicadores. O Sicoob divulga diretamente "municípios com presença"
+ * e "municípios de até 50 mil habitantes atendidos" — BB e Itaú não publicam esses dois
+ * números; aqui eles são calculados cruzando o ESTBAN (município de cada agência) com as
+ * estimativas de população por município do IBGE (ver `NETWORK_SNAPSHOTS` e `REFERENCES`).
+ * Ver `SOURCES` para a origem de cada dado.
  */
 export const PRESENCE_HIGHLIGHTS: PresenceHighlight[] = [
   { institution: 'sicoob', stat: '+2.000', label: 'municípios com presença', asOf: '2023' },
@@ -320,9 +323,13 @@ export const PRESENCE_HIGHLIGHTS: PresenceHighlight[] = [
   { institution: 'bb', stat: '78 milhões', label: 'clientes (CPF/CNPJ com relacionamento ativo)', asOf: 'dez/2024' },
   { institution: 'bb', stat: '86.574', label: 'funcionários', asOf: 'dez/2024' },
   { institution: 'bb', stat: '3.171', label: 'agências tradicionais (+826 digitais e especializadas)', asOf: 'dez/2024' },
+  { institution: 'bb', stat: '2.302', label: 'municípios atendidos', asOf: 'jan/2026' },
+  { institution: 'bb', stat: '1.619', label: 'municípios de até 50 mil habitantes atendidos', asOf: 'jan/2026' },
   { institution: 'itau', stat: '99 milhões', label: 'clientes (CPF/CNPJ com relacionamento ativo)', asOf: 'dez/2024' },
   { institution: 'itau', stat: '96,2 mil', label: 'funcionários', asOf: 'dez/2024' },
   { institution: 'itau', stat: '2.272', label: 'agências e postos de atendimento', asOf: 'dez/2024' },
+  { institution: 'itau', stat: '854', label: 'municípios atendidos', asOf: 'jan/2026' },
+  { institution: 'itau', stat: '356', label: 'municípios de até 50 mil habitantes atendidos', asOf: 'jan/2026' },
 ]
 
 export interface UFCount {
@@ -570,6 +577,7 @@ export const LIMITATIONS: string[] = [
   'O índice de eficiência do Sicoob não é divulgado para o sistema combinado em todos os anos da série — 2022 e 2025 seguem em aberto, e a inadimplência de 2025 também.',
   'ROE e ROA são recalculados aqui sobre saldos de fechamento. Os números oficiais de cada instituição usam saldos médios e resultados ajustados, e por isso são sistematicamente mais altos.',
   'A contagem de rede tem datas-base e conceitos diferentes: BB e Itaú vêm do ESTBAN (jan/2026, só agências com balancete próprio); o Sicoob vem da API de canais de atendimento do Open Finance (set/2026, agências + postos de atendimento das cooperativas singulares), porque nenhuma delas aparece no ESTBAN sob o nome Sicoob.',
+  'Para BB e Itaú, "municípios de até 50 mil habitantes atendidos" não é um número publicado pelos bancos: é obtido cruzando o município de cada agência no ESTBAN (jan/2026) com a estimativa de população residente por município mais recente do IBGE (2026). Já o número do Sicoob (1.859, base 2023) é autodeclarado pela cooperativa — os três não usam a mesma base de população nem a mesma data.',
   'O market share é estimado, não publicado: o Banco Central não divulga um ranking direto de participação por instituição.',
 ]
 
@@ -936,6 +944,15 @@ export const REFERENCES: Reference[] = [
     url: 'https://www.bcb.gov.br/estatisticas/estatisticabancariamunicipios',
     accessedAt: ACCESS,
     note: 'Agências por unidade da federação e por município, para BB e Itaú.',
+  },
+  {
+    group: 'geral',
+    author: 'INSTITUTO BRASILEIRO DE GEOGRAFIA E ESTATÍSTICA.',
+    emphasis: 'Estimativas da população residente',
+    after: ': agregado 6579 (Sidra). Rio de Janeiro: IBGE, 2026.',
+    url: 'https://servicodados.ibge.gov.br/api/v3/agregados/6579',
+    accessedAt: ACCESS,
+    note: 'População estimada por município (2026), cruzada com o ESTBAN para contar quantos municípios atendidos por BB e Itaú têm até 50 mil habitantes.',
   },
   {
     group: 'geral',
