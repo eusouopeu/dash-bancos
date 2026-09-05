@@ -2,10 +2,12 @@ import type { ComponentType, ReactNode, SVGProps } from 'react'
 import {
   ArrowTrendingUpIcon,
   ChartPieIcon,
+  ChatBubbleLeftRightIcon,
   ExclamationTriangleIcon,
   FlagIcon,
   GlobeAmericasIcon,
   ScaleIcon,
+  ShieldCheckIcon,
 } from '@heroicons/react/24/outline'
 import { ArrowDownIcon, ArrowUpIcon } from '@heroicons/react/20/solid'
 import { ASSUMPTIONS, FORMULAS, LIMITATIONS, institutionById, type Formula } from '../data'
@@ -20,6 +22,8 @@ const ICONS: Record<Formula['icon'], Icon> = {
   warning: ExclamationTriangleIcon,
   flag: FlagIcon,
   globe: GlobeAmericasIcon,
+  shield: ShieldCheckIcon,
+  chat: ChatBubbleLeftRightIcon,
 }
 
 /** Cabeçalho de bloco: filete à esquerda, título e uma linha dizendo o que vem abaixo. */
@@ -127,7 +131,7 @@ export function Metodologia() {
         <Block>
           <SectionHeader
             title="Fórmulas"
-            subtitle="Os seis indicadores calculados neste painel, com a definição exata usada, a unidade do resultado e o sentido da leitura."
+            subtitle="Os nove indicadores calculados neste painel, com a definição exata usada, a unidade do resultado e o sentido da leitura."
           />
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {FORMULAS.map((f) => (

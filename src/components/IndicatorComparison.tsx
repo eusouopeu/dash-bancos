@@ -10,6 +10,8 @@ export interface ComparisonRow {
   year: number
   /** 'max' = maior é melhor (rentabilidade); 'min' = menor é melhor (eficiência, inadimplência). */
   better: 'max' | 'min'
+  /** 'percent' (padrão) formata o decimal como %; 'index' mostra o valor bruto, para indicadores que não são um percentual (ex.: índice de reclamações). */
+  format?: 'percent' | 'index'
   hint?: string
 }
 
@@ -19,7 +21,10 @@ interface IndicatorComparisonProps {
 }
 
 /** Fórmula e leitura de cada indicador, para o popover de ajuda ao lado do título. */
-const INDICATOR_INFO: Record<'roe' | 'roa' | 'eficiencia' | 'inadimplencia', { formula: string; explanation: string }> = {
+const INDICATOR_INFO: Record<
+  'roe' | 'roa' | 'eficiencia' | 'inadimplencia' | 'basileia' | 'indiceReclamacoes',
+  { formula: string; explanation: string }
+> = {
   roe: {
     formula: 'Lucro Líquido ÷ Patrimônio Líquido × 100',
     explanation:
@@ -36,6 +41,14 @@ const INDICATOR_INFO: Record<'roe' | 'roa' | 'eficiencia' | 'inadimplencia', { f
   inadimplencia: {
     formula: 'Carteira Vencida > 90 dias ÷ Carteira de Crédito × 100',
     explanation: 'Quanto menor a inadimplência, menor a parcela da carteira de crédito com pagamento em atraso há mais de 90 dias.',
+  },
+  basileia: {
+    formula: 'Patrimônio de Referência ÷ Ativos Ponderados pelo Risco × 100',
+    explanation: 'Quanto maior o índice de Basileia, maior o colchão de capital da instituição para absorver perdas inesperadas sem comprometer os depósitos.',
+  },
+  indiceReclamacoes: {
+    formula: 'Reclamações Procedentes ÷ Clientes (milhões) — ranking trimestral do Bacen',
+    explanation: 'Quanto menor o índice de reclamações, menos reclamações procedentes a instituição recebeu para cada milhão de clientes.',
   },
 }
 
@@ -152,7 +165,11 @@ export function IndicatorComparison({ rows, data }: IndicatorComparisonProps) {
                             : { color: '#737373' }
                       }
                     >
-                      {value === undefined ? 'sem dado' : formatPercent(value)}
+                      {value === undefined
+                        ? 'sem dado'
+                        : row.format === 'index'
+                          ? value.toLocaleString('pt-BR', { maximumFractionDigits: 1 })
+                          : formatPercent(value)}
                     </span>
                   </li>
                 )

@@ -163,3 +163,11 @@ export function ROELineChart() {
 export function InadimplenciaLineChart() {
   return <LineSeriesChart indicator="inadimplencia" scale={100} valueSuffix="%" digits={1} />
 }
+
+export function BasileiaLineChart() {
+  return <LineSeriesChart indicator="basileia" scale={100} valueSuffix="%" digits={1} />
+}
+
+export function CrescimentoCarteiraLineChart() {
+  return <LineSeriesChart indicator="crescimentoCarteira" scale={100} valueSuffix="%" digits={1} />
+}

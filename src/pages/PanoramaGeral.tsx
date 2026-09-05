@@ -2,6 +2,8 @@ import { useState, type ReactNode } from 'react'
 import { ArrowDownTrayIcon } from '@heroicons/react/24/outline'
 import { InstitutionCard } from '../components/InstitutionCard'
 import {
+  BasileiaLineChart,
+  CrescimentoCarteiraLineChart,
   EficienciaLineChart,
   InadimplenciaLineChart,
   ROALineChart,
@@ -58,8 +60,10 @@ function InstitutionToggle({
   )
 }
 
-/** Eficiência e inadimplência usam 2024 fixo — é o exercício mais recente com dado do Sicoob para os dois. */
+/** Eficiência, inadimplência e Basileia usam 2024 fixo — é o exercício mais recente com dado do Sicoob para os três. */
 const INDICATORS_YEAR = 2024
+/** Reclamações usa 2023 fixo — último ano antes da provável mudança de patamar do Bacen em 2024, com dado do Sicoob. */
+const RECLAMACOES_YEAR = 2023
 
 function comparisonRowsFor(year: number): ComparisonRow[] {
   return [
@@ -72,6 +76,21 @@ function comparisonRowsFor(year: number): ComparisonRow[] {
       year: INDICATORS_YEAR,
       better: 'min',
       hint: 'O índice do Sicoob usa o critério de ativos problemáticos (E–H), mais amplo que o de BB e Itaú — os valores não são comparáveis 1:1.',
+    },
+    {
+      label: 'Índice de Basileia',
+      key: 'basileia',
+      year: INDICATORS_YEAR,
+      better: 'max',
+      hint: 'O índice do Sicoob é o "aglutinado" do sistema combinado — base de consolidação diferente do conglomerado prudencial de BB e Itaú.',
+    },
+    {
+      label: 'Índice de reclamações (Bacen)',
+      key: 'indiceReclamacoes',
+      year: RECLAMACOES_YEAR,
+      better: 'min',
+      format: 'index',
+      hint: 'Reclamações procedentes por milhão de clientes, ranking trimestral do Bacen (posição do 4º trimestre). A partir de 2024 o índice sobe abruptamente para BB e Itaú — provável mudança de metodologia do Bacen — por isso o comparativo usa 2023, o último ano estável com dado das três instituições.',
     },
   ]
 }
@@ -213,6 +232,12 @@ export function PanoramaGeral() {
             </ChartPanel>
             <ChartPanel title="Inadimplência > 90 dias" unit="% da carteira">
               <InadimplenciaLineChart />
+            </ChartPanel>
+            <ChartPanel title="Índice de Basileia" unit="% — maior é melhor">
+              <BasileiaLineChart />
+            </ChartPanel>
+            <ChartPanel title="Crescimento da carteira de crédito" unit="% ao ano">
+              <CrescimentoCarteiraLineChart />
             </ChartPanel>
           </div>
         </div>

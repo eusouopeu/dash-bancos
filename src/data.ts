@@ -51,7 +51,7 @@ export const INSTITUTIONS: Institution[] = [
     name: 'Banco do Brasil',
     shortName: 'BB',
     category: 'Sociedade de economia mista',
-    color: '#171717',
+    color: '#9C6B00',
     initials: 'BB',
     highlight: 'Líder em volume de ativos e maior banco em financiamento ao agronegócio.',
   },
@@ -87,6 +87,10 @@ export interface RawYearData {
   eficiencia?: number
   /** decimal — carteira vencida > 90 dias (BB/Itaú) ou índice de ativos problemáticos E-H (Sicoob, não comparável 1:1). Nem toda instituição/ano divulga. */
   inadimplencia?: number
+  /** decimal — índice de Basileia (Patrimônio de Referência ÷ Ativos Ponderados pelo Risco), posição de dez. do exercício. Para o Sicoob é o índice "aglutinado" do sistema combinado, base diferente da do conglomerado prudencial usada por BB/Itaú — ver ASSUMPTIONS. */
+  basileia?: number
+  /** índice de reclamações do Banco Central (reclamações procedentes por milhão de clientes, base CCS+SCR), posição do 4º trimestre do exercício — não é decimal, é o índice bruto do ranking. Maior é pior. Ver ASSUMPTIONS sobre a mudança de patamar a partir de 2024. */
+  indiceReclamacoes?: number
 }
 
 export const RAW_DATA_INPUT: RawYearData[] = [
@@ -101,6 +105,7 @@ export const RAW_DATA_INPUT: RawYearData[] = [
     ativosTotais: 237_700,
     carteiraCredito: 147_500,
     inadimplencia: 0.047,
+    indiceReclamacoes: 8.44,
   },
   {
     institution: 'sicoob',
@@ -111,6 +116,8 @@ export const RAW_DATA_INPUT: RawYearData[] = [
     carteiraCredito: 168_200,
     eficiencia: 0.271,
     inadimplencia: 0.06,
+    basileia: 0.17,
+    indiceReclamacoes: 9.84,
   },
   {
     institution: 'sicoob',
@@ -121,6 +128,7 @@ export const RAW_DATA_INPUT: RawYearData[] = [
     carteiraCredito: 194_000,
     eficiencia: 0.271,
     inadimplencia: 0.072,
+    basileia: 0.186,
   },
   // 2025: carteira de crédito é a "carteira ampliada líquida" (base mais ampla que a dos anos
   // anteriores, que usam a carteira de crédito "cheia") — ver ASSUMPTIONS.
@@ -142,6 +150,7 @@ export const RAW_DATA_INPUT: RawYearData[] = [
     carteiraCredito: 1_004_900,
     eficiencia: 0.292,
     inadimplencia: 0.0251,
+    indiceReclamacoes: 8.22,
   },
   {
     institution: 'bb',
@@ -152,6 +161,8 @@ export const RAW_DATA_INPUT: RawYearData[] = [
     carteiraCredito: 1_108_000,
     eficiencia: 0.275,
     inadimplencia: 0.0292,
+    basileia: 0.1547,
+    indiceReclamacoes: 5.94,
   },
   {
     institution: 'bb',
@@ -162,6 +173,8 @@ export const RAW_DATA_INPUT: RawYearData[] = [
     carteiraCredito: 1_278_000,
     eficiencia: 0.256,
     inadimplencia: 0.0332,
+    basileia: 0.1375,
+    indiceReclamacoes: 18.17,
   },
   // 2025: ano marcado por uma crise de inadimplência no agronegócio — inadimplência >90 dias
   // inclui o impacto de um caso pontual na carteira de TVM de uma empresa do atacado (R$3,6 bi);
@@ -175,6 +188,8 @@ export const RAW_DATA_INPUT: RawYearData[] = [
     carteiraCredito: 1_229_907,
     eficiencia: 0.277,
     inadimplencia: 0.0517,
+    basileia: 0.1513,
+    indiceReclamacoes: 16.22,
   },
   // --- Itaú Unibanco ---
   // 2022-2025: patrimônio líquido e ativos totais na base "gerencial" divulgada em português
@@ -188,6 +203,7 @@ export const RAW_DATA_INPUT: RawYearData[] = [
     carteiraCredito: 1_141_500,
     eficiencia: 0.412,
     inadimplencia: 0.029,
+    indiceReclamacoes: 15.26,
   },
   {
     institution: 'itau',
@@ -198,6 +214,8 @@ export const RAW_DATA_INPUT: RawYearData[] = [
     carteiraCredito: 1_177_000,
     eficiencia: 0.399,
     inadimplencia: 0.028,
+    basileia: 0.17,
+    indiceReclamacoes: 10.19,
   },
   {
     institution: 'itau',
@@ -208,6 +226,8 @@ export const RAW_DATA_INPUT: RawYearData[] = [
     carteiraCredito: 1_359_000,
     eficiencia: 0.395,
     inadimplencia: 0.024,
+    basileia: 0.165,
+    indiceReclamacoes: 41.27,
   },
   {
     institution: 'itau',
@@ -218,6 +238,8 @@ export const RAW_DATA_INPUT: RawYearData[] = [
     carteiraCredito: 1_490_000,
     eficiencia: 0.389,
     inadimplencia: 0.019,
+    basileia: 0.152,
+    indiceReclamacoes: 36.24,
   },
 ]
 
@@ -226,13 +248,22 @@ export interface YearData extends RawYearData {
   roe: number
   /** decimal — calculado como lucroLiquido / ativosTotais, ver nota metodológica */
   roa: number
+  /** decimal — variação da carteira de crédito frente ao exercício anterior. Ausente no primeiro ano de cada série (sem base de comparação). */
+  crescimentoCarteira?: number
 }
 
-export const RAW_DATA: YearData[] = RAW_DATA_INPUT.map((d) => ({
-  ...d,
-  roe: d.lucroLiquido / d.patrimonioLiquido,
-  roa: d.lucroLiquido / d.ativosTotais,
-}))
+export const RAW_DATA: YearData[] = RAW_DATA_INPUT.map((d) => {
+  const prev = RAW_DATA_INPUT.find((p) => p.institution === d.institution && p.year === d.year - 1)
+  // Sicoob 2025 muda a base da carteira (ampliada líquida, ante a carteira "cheia" de 2024) — a
+  // variação calculada misturaria crescimento real com mudança de metodologia, então fica de fora.
+  const skipGrowth = d.institution === 'sicoob' && d.year === 2025
+  return {
+    ...d,
+    roe: d.lucroLiquido / d.patrimonioLiquido,
+    roa: d.lucroLiquido / d.ativosTotais,
+    crescimentoCarteira: prev && !skipGrowth ? d.carteiraCredito / prev.carteiraCredito - 1 : undefined,
+  }
+})
 
 export const YEARS = [2022, 2023, 2024, 2025] as const
 
@@ -446,7 +477,7 @@ export interface Formula {
   /** Sentido da leitura: qual direção é desempenho melhor. */
   better: 'max' | 'min'
   /** Ícone do heroicons usado no cabeçalho do cartão. */
-  icon: 'trending' | 'pie' | 'scale' | 'warning' | 'flag' | 'globe'
+  icon: 'trending' | 'pie' | 'scale' | 'warning' | 'flag' | 'globe' | 'shield' | 'chat'
 }
 
 export const FORMULAS: Formula[] = [
@@ -513,6 +544,35 @@ export const FORMULAS: Formula[] = [
     better: 'max',
     icon: 'globe',
   },
+  {
+    name: 'Índice de Basileia',
+    numerator: 'Patrimônio de Referência',
+    denominator: 'Ativos Ponderados pelo Risco (RWA)',
+    factor: '× 100',
+    meaning: 'Colchão de capital que a instituição mantém para absorver perdas inesperadas antes de comprometer os depósitos.',
+    unit: '%',
+    better: 'max',
+    icon: 'shield',
+  },
+  {
+    name: 'Crescimento da Carteira de Crédito',
+    numerator: 'Carteira de Crédito no exercício',
+    denominator: 'Carteira de Crédito no exercício anterior',
+    factor: '− 1 × 100',
+    meaning: 'Ritmo de expansão do crédito concedido — mostra quem está ganhando espaço, não só quem já é maior.',
+    unit: '% ao ano',
+    better: 'max',
+    icon: 'trending',
+  },
+  {
+    name: 'Índice de Reclamações (Bacen)',
+    numerator: 'Reclamações Procedentes',
+    denominator: 'Clientes (base CCS + SCR, em milhões)',
+    meaning: 'Reclamações consideradas procedentes pelo Banco Central para cada milhão de clientes — mede qualidade de atendimento, não desempenho financeiro.',
+    unit: 'reclamações / milhão de clientes',
+    better: 'min',
+    icon: 'chat',
+  },
 ]
 
 export interface AssumptionGroup {
@@ -535,6 +595,7 @@ export const ASSUMPTIONS: AssumptionGroup[] = [
       'O comparativo cobre 2022–2025, os quatro exercícios com dado publicado para as três instituições.',
       'Quando um indicador não foi localizado em fonte primária para um par instituição/ano, a célula fica vazia e a linha do gráfico se interrompe — nenhum valor é interpolado ou estimado.',
       'Lucro líquido é o número "ajustado" no Banco do Brasil, o "recorrente" no Itaú e as sobras líquidas combinadas no Sicoob.',
+      'O índice de reclamações usa a posição do 4º trimestre de cada exercício (ranking trimestral do Banco Central), pela mesma lógica de "fechamento do ano" usada nos demais indicadores.',
     ],
   },
   {
@@ -545,8 +606,10 @@ export const ASSUMPTIONS: AssumptionGroup[] = [
       'A série 2022–2024 vem das Demonstrações Financeiras Combinadas, tabuladas no Relatório de Crédito da Moody\'s Local de julho de 2025.',
       'A inadimplência exibida é o índice de ativos problemáticos (carteira classificada de E a H), não o atraso acima de 90 dias.',
       'ROE e ROA são derivados aqui: a cooperativa não divulga essas métricas, e sim a rentabilidade sobre ativos tangíveis.',
-      'A carteira de crédito de 2025 é a carteira ampliada líquida — base mais ampla que a carteira cheia usada em 2023 e 2024.',
+      'A carteira de crédito de 2025 é a carteira ampliada líquida — base mais ampla que a carteira cheia usada em 2023 e 2024. Por isso o crescimento de carteira de 2025 fica em aberto: a variação misturaria crescimento real com mudança de metodologia.',
       'O market share usa o ativo do sistema combinado, base de consolidação diferente da usada para BB e Itaú no IF.data.',
+      'O índice de Basileia é o "aglutinado" do sistema combinado (todas as cooperativas singulares mais a central), divulgado no mesmo relatório da Moody\'s Local — não é o índice de conglomerado prudencial que BB e Itaú reportam, então a comparação de nível é aproximada.',
+      'No ranking de reclamações do Bacen, o Sicoob aparece na categoria "Demais instituições" (fora do Top 15) em 2024 e 2025, trimestres em que o índice não é publicado — por isso a série para o Sicoob para nesses anos.',
     ],
   },
   {
@@ -558,6 +621,7 @@ export const ASSUMPTIONS: AssumptionGroup[] = [
       'O ROE oficial divulgado pelo banco (RSPL) usa patrimônio líquido médio ajustado e por isso é maior que o ROE padronizado exibido aqui.',
       'O patrimônio líquido de dez/2024 foi estimado a partir do balanço de set/2024 e do resultado do período — o valor exato de fechamento não foi localizado em fonte pública.',
       'A inadimplência de 2025 inclui um caso pontual de R$ 3,6 bi na carteira de TVM de uma empresa do atacado; ex-esse evento, o índice seria 4,88%.',
+      'O índice de Basileia de 2022 não foi localizado em fonte primária com confiança suficiente e por isso fica em aberto — a série começa em 2023.',
     ],
   },
   {
@@ -569,6 +633,7 @@ export const ASSUMPTIONS: AssumptionGroup[] = [
       'Patrimônio líquido e ativos totais na base gerencial/IFRS consolidada — mesma base das demais métricas do Itaú aqui.',
       'A carteira de crédito é a carteira ampliada em todos os anos da série.',
       'A carteira de 2023 foi derivada do crescimento anual de 15,5% divulgado no release do 4T24.',
+      'O índice de Basileia de 2022 não foi localizado em fonte primária com confiança suficiente e por isso fica em aberto — a série começa em 2023.',
     ],
   },
 ]
@@ -582,6 +647,9 @@ export const LIMITATIONS: string[] = [
   'A contagem de rede tem datas-base e conceitos diferentes: BB e Itaú vêm do ESTBAN (jan/2026, só agências com balancete próprio); o Sicoob vem da API de canais de atendimento do Open Finance (set/2026, agências + postos de atendimento das cooperativas singulares), porque nenhuma delas aparece no ESTBAN sob o nome Sicoob.',
   '"Municípios atendidos" e "municípios de até 50 mil habitantes atendidos" não são números publicados por nenhuma das três instituições: são obtidos cruzando o município de cada ponto de atendimento (ESTBAN para BB e Itaú, jan/2026; API de canais de atendimento/Sisbr para o Sicoob, set/2026) com a estimativa de população residente por município mais recente do IBGE (2026). Datas-base diferentes entre as três limitam a comparação direta.',
   'O market share é estimado, não publicado: o Banco Central não divulga um ranking direto de participação por instituição.',
+  'O índice de Basileia do Sicoob (aglutinado, sistema combinado) e o de BB/Itaú (conglomerado prudencial) partem de bases de consolidação diferentes — a comparação de nível entre cooperativa e bancos é aproximada, não 1:1.',
+  'O índice de reclamações do Bacen sobe de forma abrupta para BB e Itaú a partir do 2º trimestre de 2024 (ex.: Itaú vai de ~10 para acima de 40) — o mesmo salto aparece em outras instituições do ranking na mesma janela, o que sugere mudança de patamar ou metodologia no cálculo do Bacen, não necessariamente piora real de atendimento. Leia a comparação entre 2022–2023 e 2024–2025 com cautela; a comparação entre instituições dentro do mesmo trimestre continua válida, porque usa o mesmo critério para todas.',
+  'Não há, em fonte pública, uma taxa média de juros ao tomador final comparável entre as três instituições: o Banco Central publica taxas por modalidade de crédito (dezenas de linhas por instituição), não uma taxa média agregada, e nenhuma das três divulga um "yield da carteira" com metodologia equivalente às demais — por isso esse indicador não entrou no comparativo.',
 ]
 
 /* -------------------------------------------------------------------------- */
@@ -652,7 +720,16 @@ export const REFERENCES: Reference[] = [
     after: ": Banco Cooperativo Sicoob S.A. São Paulo: Moody's Local, 21 jul. 2025.",
     url: 'https://moodyslocal.com.br/wp-content/uploads/2025/07/Relatorio-de-Credito_Banco-Sicoob.pdf',
     accessedAt: ACCESS,
-    note: 'Série 2021–2024 do sistema combinado: sobras líquidas, patrimônio líquido, ativos totais e índice de ativos problemáticos.',
+    note: 'Série 2021–2024 do sistema combinado: sobras líquidas, patrimônio líquido, ativos totais, índice de ativos problemáticos e índice de Basileia aglutinado (17,0% em 2023 e 18,6% em 2024).',
+  },
+  {
+    group: 'sicoob',
+    author: 'BRASIL. Banco Central do Brasil.',
+    emphasis: 'Ranking de instituições por índice de reclamações — Bancos e financeiras',
+    after: '. Brasília, DF: Bacen, 2026. Séries trimestrais 2022–2025.',
+    url: 'https://dadosabertos.bcb.gov.br/dataset/ranking-de-instituicoes-por-indice-de-reclamacoes',
+    accessedAt: ACCESS,
+    note: 'Índice de reclamações procedentes por milhão de clientes do Sicoob (categoria "Demais instituições" no ranking, posição do 4º trimestre): 8,44 em 2022 e 9,84 em 2023. Sem valor publicado para 2024 e 2025 — ver ASSUMPTIONS. Mesma fonte usada para BB e Itaú.',
   },
   {
     group: 'sicoob',
@@ -751,7 +828,7 @@ export const REFERENCES: Reference[] = [
     after: ': 4T23. Brasília, DF: Banco do Brasil, 2024.',
     url: 'https://api.mziq.com/mzfilemanager/v2/d/5760dff3-15e1-4962-9e81-322a0b3d0bbd/8bff3233-96f7-c182-e4e0-62ed3273412e?origin=1',
     accessedAt: ACCESS,
-    note: 'Lucro, patrimônio, ativos, carteira, eficiência e inadimplência de 2022 e 2023.',
+    note: 'Lucro, patrimônio, ativos, carteira, eficiência e inadimplência de 2022 e 2023, além do índice de Basileia de 2023 (15,47%; Nível I 13,91%, Capital Principal 12,12%).',
   },
   {
     group: 'bb',
@@ -796,7 +873,7 @@ export const REFERENCES: Reference[] = [
     after: ', São Paulo, 2025.',
     url: 'https://conteudos.xpi.com.br/acoes/relatorios/resultado-bbas3-bb-4t24/',
     accessedAt: ACCESS,
-    note: 'Eficiência, inadimplência e carteira de 2024.',
+    note: 'Eficiência, inadimplência e carteira de 2024, além do índice de Basileia de dez/2024 (13,75%), o mais baixo da série.',
   },
   {
     group: 'bb',
@@ -807,6 +884,16 @@ export const REFERENCES: Reference[] = [
     after: ', São Paulo, 2026.',
     url: 'https://www.seudinheiro.com/2026/empresas/balanco-banco-do-brasil-bb-bbas3-4t25-2025-lucro-rentabilidade-roe-inadimplencia-miql/',
     accessedAt: ACCESS,
+    note: 'Índice de Basileia de dez/2025 (15,13%; Capital Principal 12,23%), reproduzido também em cobertura da Suno sobre o release do 4T25.',
+  },
+  {
+    group: 'bb',
+    author: 'BRASIL. Banco Central do Brasil.',
+    emphasis: 'Ranking de instituições por índice de reclamações — Bancos e financeiras',
+    after: '. Brasília, DF: Bacen, 2026. Séries trimestrais 2022–2025.',
+    url: 'https://dadosabertos.bcb.gov.br/dataset/ranking-de-instituicoes-por-indice-de-reclamacoes',
+    accessedAt: ACCESS,
+    note: 'Índice de reclamações procedentes por milhão de clientes do BB (posição do 4º trimestre): 8,22 em 2022; 5,94 em 2023; 18,17 em 2024; 16,22 em 2025 — ver ASSUMPTIONS sobre a mudança de patamar a partir de 2024.',
   },
   {
     group: 'bb',
@@ -837,7 +924,7 @@ export const REFERENCES: Reference[] = [
     after: ': 4T23. São Paulo: Itaú Unibanco, 2024.',
     url: 'https://static.poder360.com.br/2024/02/itau-analise-gerencial-4T-2023.pdf',
     accessedAt: ACCESS,
-    note: 'Rede de agências e distribuição regional.',
+    note: 'Rede de agências e distribuição regional; índice de Basileia de dez/2023 (17,0%; Tier I 15,2%, sendo 13,7% Capital Principal e 1,5% Nível I Complementar).',
   },
   {
     group: 'itau',
@@ -846,6 +933,25 @@ export const REFERENCES: Reference[] = [
     after: ': release de resultados. São Paulo: Itaú Unibanco, 2025.',
     url: 'https://www.itau.com.br/download-file/v2/d/42787847-4cf6-4461-94a5-40ed237dca33/1182c2ec-ea05-7a1c-bd2d-f1f392285245?origin=1',
     accessedAt: ACCESS,
+  },
+  {
+    group: 'itau',
+    author: 'ITAÚ UNIBANCO HOLDING S.A.',
+    before: 'Itaú reduz índice de Basileia após crescimento de ativos ponderados pelo risco no 4T24.',
+    emphasis: 'Gerenciamento de riscos e capital — Pilar 3, 4T24',
+    after: '. São Paulo: Itaú Unibanco, 2025. Reproduzido por ISTOÉ Dinheiro/Estadão Conteúdo.',
+    url: 'https://www.itau.com.br/relacoes-com-investidores',
+    accessedAt: ACCESS,
+    note: 'Índice de Basileia de dez/2024 (16,5%, −0,9 p.p. frente ao 3T24).',
+  },
+  {
+    group: 'itau',
+    author: 'BRASIL. Banco Central do Brasil.',
+    emphasis: 'Ranking de instituições por índice de reclamações — Bancos e financeiras',
+    after: '. Brasília, DF: Bacen, 2026. Séries trimestrais 2022–2025.',
+    url: 'https://dadosabertos.bcb.gov.br/dataset/ranking-de-instituicoes-por-indice-de-reclamacoes',
+    accessedAt: ACCESS,
+    note: 'Índice de reclamações procedentes por milhão de clientes do Itaú (posição do 4º trimestre): 15,26 em 2022; 10,19 em 2023; 41,27 em 2024; 36,24 em 2025 — ver ASSUMPTIONS sobre a mudança de patamar a partir de 2024.',
   },
   {
     group: 'itau',
@@ -930,6 +1036,7 @@ export const REFERENCES: Reference[] = [
     after: ', São Paulo, 2026.',
     url: 'https://www.infomoney.com.br/mercados/itau-itub4-resultados-quarto-trimestre-2025/',
     accessedAt: ACCESS,
+    note: 'Índice de Basileia de dez/2025 (15,2%; Tier I 13,8%, Capital Principal 12,3%), reproduzido também pelo ADVFN.',
   },
 
   // --- Sistema financeiro e cartografia ---
