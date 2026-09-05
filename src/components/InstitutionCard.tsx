@@ -36,7 +36,10 @@ export function InstitutionCard({ institution, latest, year, agencias }: Institu
               <p className="eyebrow mt-2">Ativos totais</p>
             </div>
 
-            <dl className="mt-5 grid grid-cols-2 gap-px overflow-hidden rounded-md bg-rule-soft">
+            <dl
+              className="mt-5 grid gap-px overflow-hidden rounded-md bg-rule-soft"
+              style={{ gridTemplateColumns: '35% 65%' }}
+            >
               <div className="bg-surface px-3 py-2.5">
                 <dt className="eyebrow">Agências</dt>
                 <dd className="tnum mt-1 font-mono text-[17px] font-semibold text-ink">
